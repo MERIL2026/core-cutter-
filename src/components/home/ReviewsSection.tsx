@@ -1,10 +1,11 @@
 import React from 'react';
+import Link from 'next/link';
 import { Section } from '../layout/Section';
 import { Container } from '../layout/Container';
 import { SectionHeading } from '../ui/SectionHeading';
 import { ReviewCard } from '../reviews/ReviewCard';
 import { Review } from '@/types';
-import { MessageSquareQuote } from 'lucide-react';
+import { MessageSquareQuote, ArrowRight } from 'lucide-react';
 
 export interface ReviewsSectionProps {
   reviews: Review[];
@@ -37,6 +38,16 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ reviews }) => {
               </p>
             </div>
           )}
+        </div>
+
+        <div className="mt-10 text-center">
+          <Link
+            href="/reviews"
+            className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg bg-white border border-brand-border text-brand-navy font-bold text-sm hover:border-brand-secondary-blue hover:text-brand-secondary-blue transition-all shadow-xs"
+          >
+            <span>Explore All Customer Reviews & Policy</span>
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </Container>
     </Section>
