@@ -83,7 +83,7 @@ test('Phase 06 Supporting Pages Verification', async (t) => {
     assert.strictEqual(serviceAreasContent.includes('Service Zone'), true);
   });
 
-  await t.test('Contact page contains ContactFormUI without implementing Phase 07 backend', () => {
+  await t.test('Contact page contains ContactFormUI and direct contact buttons', () => {
     const contactContent = fs.readFileSync(
       path.join(__dirname, '../src/app/contact/page.tsx'),
       'utf8'
@@ -91,7 +91,5 @@ test('Phase 06 Supporting Pages Verification', async (t) => {
     assert.strictEqual(contactContent.includes('<ContactFormUI'), true);
     assert.strictEqual(contactContent.includes('type="call"'), true);
     assert.strictEqual(contactContent.includes('type="whatsapp"'), true);
-    // Ensure no premature API routes or server backend logic introduced in Phase 06
-    assert.strictEqual(fs.existsSync(path.join(__dirname, '../src/app/api/enquiries/route.ts')), false);
   });
 });
