@@ -21,6 +21,7 @@
         "name": "next"
       }
     ],
+    "typeRoots": ["./node_modules/@types"],
     "paths": {
       "@/*": ["./src/*"]
     }
