@@ -4,19 +4,23 @@ import Image from 'next/image';
 import { ArrowRight, Wrench } from 'lucide-react';
 import { clsx } from 'clsx';
 
+import { Service } from '@/types';
+
 export interface ServiceCardProps {
-  slug: string;
-  name: string;
-  summary: string;
+  service?: Service;
+  slug?: string;
+  name?: string;
+  summary?: string;
   image_url?: string | null;
   className?: string;
 }
 
 export const ServiceCard: React.FC<ServiceCardProps> = ({
-  slug,
-  name,
-  summary,
-  image_url,
+  service,
+  slug = service?.slug || '',
+  name = service?.name || '',
+  summary = service?.summary || '',
+  image_url = service?.image_url,
   className,
 }) => {
   const href = `/services/${slug}`;

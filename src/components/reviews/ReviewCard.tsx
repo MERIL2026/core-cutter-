@@ -2,9 +2,12 @@ import React from 'react';
 import { Star, CheckCircle, Quote } from 'lucide-react';
 import { clsx } from 'clsx';
 
+import { Review } from '@/types';
+
 export interface ReviewCardProps {
-  customerName: string;
-  reviewText: string;
+  review?: Review;
+  customerName?: string;
+  reviewText?: string;
   rating?: number | null;
   source?: 'manual' | 'google' | string;
   sourceUrl?: string | null;
@@ -13,11 +16,12 @@ export interface ReviewCardProps {
 }
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({
-  customerName,
-  reviewText,
-  rating = 5,
-  source = 'Google',
-  reviewDate,
+  review,
+  customerName = review?.customer_name || 'Customer',
+  reviewText = review?.review_text || '',
+  rating = review?.rating ?? 5,
+  source = review?.source || 'Google',
+  reviewDate = review?.review_date || null,
   className,
 }) => {
   const starsCount = Math.min(5, Math.max(1, rating || 5));

@@ -11,58 +11,12 @@ import { ReviewCard } from '@/components/reviews/ReviewCard';
 import { GalleryGrid } from '@/components/gallery/GalleryGrid';
 import { FAQAccordion } from '@/components/faq/FAQAccordion';
 import { ContactFormUI } from '@/components/forms/ContactFormUI';
-import { FAQ, GalleryItem } from '@/types';
+import { getActiveServices, getActiveFAQs, getActiveGalleryItems, getGalleryCategories } from '@/lib/content';
 
-// Development showcase data
-const sampleFaqs: FAQ[] = [
-  {
-    id: 'faq-1',
-    question: 'What is AC Core Cutting?',
-    answer:
-      'AC core cutting is a precise diamond-drilling method used to create clean, circular openings through walls or RCC concrete slabs for AC copper refrigerant pipes, drain pipes, and electrical wiring.',
-    display_order: 1,
-    is_published: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'faq-2',
-    question: 'Can you drill through RCC concrete walls?',
-    answer:
-      'Yes, our heavy-duty diamond core drilling equipment cuts smoothly through reinforced concrete (RCC), brick walls, beam sides, and stone without causing cracks or structural vibration.',
-    display_order: 2,
-    is_published: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
-
-const sampleGalleryItems: GalleryItem[] = [
-  {
-    id: 'g-1',
-    image_url: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80',
-    alt_text: 'Clean circular core cutting opening in concrete wall for split AC installation',
-    title: 'Clean Split AC Core Hole',
-    category: 'AC Core Cutting',
-    location: 'Main City',
-    is_published: true,
-    display_order: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'g-2',
-    image_url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80',
-    alt_text: 'Heavy duty RCC drilling machine in operation',
-    title: 'RCC Wall Drilling',
-    category: 'RCC Drilling',
-    location: 'Nearby Sector',
-    is_published: true,
-    display_order: 2,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
+const canonicalServices = getActiveServices();
+const canonicalFaqs = getActiveFAQs();
+const canonicalGalleryItems = getActiveGalleryItems();
+const galleryCategories = getGalleryCategories();
 
 export default function ComponentShowcasePage() {
   return (
@@ -134,21 +88,9 @@ export default function ComponentShowcasePage() {
               align="left"
             />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <ServiceCard
-                slug="ac-core-cutting"
-                name="AC Core Cutting"
-                summary="Clean, accurate 2 to 5 inch circular wall openings for split and window AC copper refrigerant pipes and drain hoses."
-              />
-              <ServiceCard
-                slug="rcc-core-cutting"
-                name="RCC Core Cutting"
-                summary="Heavy-duty diamond core drilling through reinforced concrete (RCC) structures with zero vibration damage."
-              />
-              <ServiceCard
-                slug="ac-drain-hole"
-                name="AC Drain Hole"
-                summary="Slanted precision wall drilling for smooth water drainage passage from outdoor and indoor units."
-              />
+              {canonicalServices.slice(0, 3).map((service) => (
+                <ServiceCard key={service.id} service={service} />
+              ))}
             </div>
           </Container>
         </Section>
@@ -161,14 +103,15 @@ export default function ComponentShowcasePage() {
                 <SectionHeading
                   eyebrow="Social Proof"
                   title="ReviewCard Component"
+                  description="Component demonstration template. Production reviews require verified owner input."
                   align="left"
                 />
                 <ReviewCard
-                  customerName="Rohan Verma"
-                  reviewText="Excellent AC core cutting service! They drilled two clean 3-inch holes through my 9-inch RCC wall for split AC installation without making any mess. Highly professional team."
+                  customerName="[Verified Customer Name]"
+                  reviewText="Clean and precise diamond core cutting hole through reinforced wall for AC installation without any mess or damage."
                   rating={5}
                   source="Google"
-                  reviewDate="2 days ago"
+                  reviewDate="Sample Date"
                 />
               </div>
 
@@ -176,9 +119,10 @@ export default function ComponentShowcasePage() {
                 <SectionHeading
                   eyebrow="Objection Handling"
                   title="FAQAccordion Component"
+                  description="Canonical customer questions loaded from Phase 03 content layer."
                   align="left"
                 />
-                <FAQAccordion items={sampleFaqs} />
+                <FAQAccordion items={canonicalFaqs} />
               </div>
             </div>
           </Container>
@@ -192,9 +136,10 @@ export default function ComponentShowcasePage() {
                 <SectionHeading
                   eyebrow="Real Work Proof"
                   title="GalleryGrid Component"
+                  description="Consumes canonical gallery layer (displays empty-state until real job photos are uploaded)."
                   align="left"
                 />
-                <GalleryGrid items={sampleGalleryItems} categories={['AC Core Cutting', 'RCC Drilling']} />
+                <GalleryGrid items={canonicalGalleryItems} categories={galleryCategories} />
               </div>
 
               <div className="lg:col-span-5">

@@ -1,4 +1,8 @@
-// Core Entity Types matching approved Database Schema Document v1.0
+// Core Entity Types matching approved Database Schema Document v1.0 and System Architecture
+
+export interface BusinessHours {
+  [day: string]: string;
+}
 
 export interface BusinessProfile {
   id: string;
@@ -8,11 +12,16 @@ export interface BusinessProfile {
   whatsapp?: string | null;
   address?: string | null;
   city: string;
-  hours?: Record<string, string> | null;
+  hours?: BusinessHours | null;
   description?: string | null;
   google_business_url?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ServiceProcessStep {
+  title: string;
+  description: string;
 }
 
 export interface Service {
@@ -22,7 +31,7 @@ export interface Service {
   summary: string;
   description: string;
   benefits?: string[] | null;
-  process?: { title: string; description: string }[] | null;
+  process?: ServiceProcessStep[] | null;
   image_url?: string | null;
   seo_title?: string | null;
   seo_description?: string | null;
@@ -117,3 +126,11 @@ export interface AnalyticsEvent {
   metadata?: Record<string, unknown> | null;
   occurred_at: string;
 }
+
+export interface SiteSetting {
+  key: string;
+  value: Record<string, unknown> | string | number | boolean | unknown[];
+  updated_at: string;
+}
+
+export type SiteSettings = Record<string, unknown>;
