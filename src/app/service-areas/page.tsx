@@ -1,0 +1,267 @@
+import React from 'react';
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+import { Section } from '@/components/layout/Section';
+import { Container } from '@/components/layout/Container';
+import { SectionHeading } from '@/components/ui/SectionHeading';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { ContactCTA } from '@/components/ui/ContactCTA';
+import { Button } from '@/components/ui/Button';
+import { ContactFormUI } from '@/components/forms/ContactFormUI';
+import {
+  getBusinessProfile,
+  getActiveServiceAreas,
+  getActiveServices,
+} from '@/lib/content';
+import {
+  ShieldCheck,
+  MapPin,
+  Clock,
+  CheckCircle2,
+  Truck,
+  ArrowRight,
+} from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Service Areas | Local AC & RCC Core Cutting Coverage',
+  description:
+    'Find local diamond core cutting and concrete drilling coverage areas. Prompt technician dispatch across residential sectors and commercial zones.',
+};
+
+export default function ServiceAreasPage() {
+  const businessProfile = getBusinessProfile();
+  const serviceAreas = getActiveServiceAreas();
+  const services = getActiveServices();
+  const serviceOptions = services.map((s) => ({ id: s.slug, name: s.name }));
+
+  return (
+    <div className="min-h-screen flex flex-col bg-brand-bg text-brand-text">
+      {/* 1. Header */}
+      <Header
+        businessName={businessProfile.business_name}
+        phone={businessProfile.phone}
+        whatsapp={businessProfile.whatsapp || businessProfile.phone}
+      />
+
+      <main className="flex-1">
+        {/* 2. Hero */}
+        <section className="bg-gradient-to-b from-brand-navy via-brand-navy to-[#0A192F] text-white pt-6 pb-14 sm:pb-18 border-b border-slate-800">
+          <Container>
+            <Breadcrumbs items={[{ label: 'Service Areas' }]} className="text-slate-400 mb-6" />
+
+            <div className="max-w-3xl space-y-6">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-secondary-blue/30 border border-brand-secondary-blue/40 text-brand-accent-blue text-xs font-semibold tracking-wide">
+                <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Local Technician Coverage</span>
+              </div>
+
+              {/* Exactly One H1 */}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                Service Areas &amp; Local Coverage
+              </h1>
+
+              <p className="text-base sm:text-lg text-slate-300 leading-relaxed">
+                We provide prompt on-site diamond core cutting, AC pipe hole drilling, and RCC concrete penetrations across {businessProfile.city} and surrounding local zones.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <ContactCTA
+                  type="quote"
+                  quoteHref="#quote-section"
+                  size="md"
+                  label="Check Availability &amp; Quote"
+                  className="w-full sm:w-auto"
+                />
+                <ContactCTA
+                  type="call"
+                  phone={businessProfile.phone}
+                  size="md"
+                  label="Call Technician"
+                  variant="outline"
+                  className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 hover:border-white"
+                />
+                <ContactCTA
+                  type="whatsapp"
+                  whatsapp={businessProfile.whatsapp || businessProfile.phone}
+                  size="md"
+                  label="WhatsApp Location"
+                  className="w-full sm:w-auto"
+                />
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        {/* 3. Configured Service Areas List */}
+        <Section background="default" spacing="default" id="areas-list">
+          <Container>
+            <SectionHeading
+              eyebrow="Local Coverage Zones"
+              title={`Where We Provide Core Cutting in ${businessProfile.city}`}
+              description="Our mobile drilling technicians are dispatched directly with heavy-duty diamond coring rigs and dust/slurry protection."
+              align="center"
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mt-10 sm:mt-12">
+              {serviceAreas.map((area) => (
+                <div
+                  key={area.id}
+                  className="flex flex-col justify-between p-6 sm:p-7 bg-white rounded-xl border border-brand-border shadow-xs hover:border-brand-secondary-blue/40 transition-all group"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2.5 text-brand-secondary-blue">
+                      <div className="h-9 w-9 rounded-lg bg-brand-light-blue flex items-center justify-center text-brand-navy group-hover:bg-brand-secondary-blue group-hover:text-white transition-colors">
+                        <MapPin className="h-5 w-5" aria-hidden="true" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-brand-muted">
+                        Service Zone
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-brand-navy group-hover:text-brand-secondary-blue transition-colors">
+                      {area.name}
+                    </h3>
+
+                    {area.description && (
+                      <p className="text-sm text-brand-muted leading-relaxed">
+                        {area.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-brand-border/60 flex items-center justify-between text-xs text-brand-muted font-medium">
+                    <span className="inline-flex items-center text-emerald-600 font-semibold">
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Active Coverage
+                    </span>
+                    <span>Direct Dispatch</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </Section>
+
+        {/* 4. Service Coverage Explanation */}
+        <Section background="white" spacing="default" className="border-t border-brand-border">
+          <Container>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+              <div className="lg:col-span-7 space-y-5">
+                <SectionHeading
+                  eyebrow="Coverage Scope"
+                  title="Residential, Commercial &amp; Industrial Dispatch"
+                  align="left"
+                />
+
+                <p className="text-sm sm:text-base text-brand-muted leading-relaxed">
+                  Our core cutting team travels directly to your property with all required diamond core barrel bits, drill stands, water cooling equipment, and protective drop cloths.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="p-4 bg-brand-bg rounded-xl border border-brand-border space-y-1">
+                    <strong className="block text-sm font-bold text-brand-navy">Residential Flats &amp; Homes</strong>
+                    <p className="text-xs text-brand-muted">Individual split AC wall holes, angled drain lines, kitchen exhaust vents, and balcony penetrations.</p>
+                  </div>
+
+                  <div className="p-4 bg-brand-bg rounded-xl border border-brand-border space-y-1">
+                    <strong className="block text-sm font-bold text-brand-navy">Commercial &amp; Office Sites</strong>
+                    <p className="text-xs text-brand-muted">Multi-split VRV/VRF ducting, electrical conduit riser sleeves, and plumbing line passages through RCC slabs.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5 bg-brand-bg rounded-2xl p-6 sm:p-8 border border-brand-border space-y-5">
+                <div className="flex items-center space-x-3 text-brand-navy">
+                  <div className="h-10 w-10 rounded-xl bg-brand-secondary-blue/10 flex items-center justify-center text-brand-secondary-blue">
+                    <Truck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold">Outside These Listed Areas?</h3>
+                    <p className="text-xs text-brand-muted">We accommodate broader commercial requirements.</p>
+                  </div>
+                </div>
+
+                <p className="text-xs sm:text-sm text-brand-muted leading-relaxed">
+                  If your project is located slightly outside our listed zones, contact our team directly with your site location and hole count. We can often arrange customized technician scheduling.
+                </p>
+
+                <div>
+                  <Link href="/services">
+                    <Button variant="outline" size="sm" className="w-full" rightIcon={<ArrowRight className="h-4 w-4" />}>
+                      Explore Available Services
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </Container>
+        </Section>
+
+        {/* 5. Final Conversion & Quote Section */}
+        <Section background="light" spacing="default" id="quote-section" className="border-t border-brand-border">
+          <Container>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
+              <div className="lg:col-span-6 space-y-6">
+                <div>
+                  <span className="inline-block text-xs sm:text-sm font-bold uppercase tracking-wider text-brand-secondary-blue mb-2">
+                    Check Local Availability
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-brand-navy tracking-tight">
+                    Schedule Core Cutting in Your Area
+                  </h2>
+                  <p className="mt-3 text-sm sm:text-base text-brand-muted leading-relaxed">
+                    Share your address or sector location to confirm technician availability, expected arrival times, and transparent pricing.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-2xl p-6 border border-brand-border shadow-xs space-y-4">
+                  <h3 className="text-base font-bold text-brand-navy">Speak with Our Team:</h3>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <ContactCTA
+                      type="call"
+                      phone={businessProfile.phone}
+                      size="md"
+                      label={`Call: ${businessProfile.phone}`}
+                      className="w-full sm:w-auto"
+                    />
+                    <ContactCTA
+                      type="whatsapp"
+                      whatsapp={businessProfile.whatsapp || businessProfile.phone}
+                      size="md"
+                      label="Share Location on WhatsApp"
+                      className="w-full sm:w-auto"
+                    />
+                  </div>
+
+                  <div className="pt-2 border-t border-brand-border/60 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-brand-muted">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-4 w-4 text-brand-secondary-blue shrink-0" aria-hidden="true" />
+                      <span>Mon - Sat: 8:00 AM - 8:00 PM</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="h-4 w-4 text-brand-secondary-blue shrink-0" aria-hidden="true" />
+                      <span>{businessProfile.city} &amp; Surrounding Areas</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-6">
+                <ContactFormUI services={serviceOptions} />
+              </div>
+            </div>
+          </Container>
+        </Section>
+      </main>
+
+      {/* 6. Footer */}
+      <Footer
+        businessName={businessProfile.business_name}
+        phone={businessProfile.phone}
+        whatsapp={businessProfile.whatsapp || businessProfile.phone}
+        city={businessProfile.city}
+      />
+    </div>
+  );
+}
