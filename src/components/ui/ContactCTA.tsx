@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Phone, MessageSquare, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 
+import { defaultBusinessProfile } from '@/content/business';
+
 export type CTAType = 'call' | 'whatsapp' | 'quote';
 
 export interface ContactCTAProps {
@@ -20,9 +22,9 @@ export interface ContactCTAProps {
 export const ContactCTA: React.FC<ContactCTAProps> = ({
   type,
   label,
-  phone = process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+919876543210',
-  whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '919876543210',
-  quoteHref = '/contact',
+  phone = defaultBusinessProfile.phone,
+  whatsapp = defaultBusinessProfile.whatsapp || defaultBusinessProfile.phone,
+  quoteHref = '#quote-section',
   variant,
   size = 'md',
   fullWidth = false,

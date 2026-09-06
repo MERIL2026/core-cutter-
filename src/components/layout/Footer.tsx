@@ -4,6 +4,8 @@ import { Container } from './Container';
 import { ShieldCheck, Phone, MessageSquare, MapPin, Clock } from 'lucide-react';
 import { mainNavItems } from '../navigation/navData';
 
+import { defaultBusinessProfile } from '@/content/business';
+
 export interface FooterProps {
   businessName?: string;
   phone?: string;
@@ -12,10 +14,10 @@ export interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({
-  businessName = 'AC & RCC Core Cutting',
-  phone = process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+919876543210',
-  whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '919876543210',
-  city = 'Local Service Area',
+  businessName = defaultBusinessProfile.business_name || 'AC & RCC Core Cutting',
+  phone = defaultBusinessProfile.phone,
+  whatsapp = defaultBusinessProfile.whatsapp || defaultBusinessProfile.phone,
+  city = defaultBusinessProfile.city,
 }) => {
   const currentYear = new Date().getFullYear();
   const servicesNav = mainNavItems.find((i) => i.label === 'Services');

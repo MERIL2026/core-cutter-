@@ -1,14 +1,82 @@
-export default function FoundationPage() {
+import React from 'react';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+import {
+  Hero,
+  TrustSection,
+  ServicesOverview,
+  ProcessSection,
+  RecentWorkSection,
+  ReviewsSection,
+  FAQPreview,
+  FinalCTASection,
+} from '@/components/home';
+import {
+  getBusinessProfile,
+  getActiveServices,
+  getActiveGalleryItems,
+  getGalleryCategories,
+  getApprovedReviews,
+  getActiveFAQs,
+} from '@/lib/content';
+
+export default function HomePage() {
+  const businessProfile = getBusinessProfile();
+  const services = getActiveServices();
+  const galleryItems = getActiveGalleryItems();
+  const galleryCategories = getGalleryCategories();
+  const reviews = getApprovedReviews();
+  const faqs = getActiveFAQs();
+
   return (
-    <main className="flex min-h-screen items-center justify-center p-6 text-center">
-      <div className="max-w-md rounded-lg border border-brand-border bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold text-brand-navy">
-          AC Core Cutting Business Website
-        </h1>
-        <p className="mt-2 text-sm text-brand-muted">
-          Phase 01 — Foundation & Project Setup Complete.
-        </p>
-      </div>
-    </main>
+    <div className="min-h-screen flex flex-col bg-brand-bg text-brand-text">
+      {/* 1. Header with sticky navigation and direct quote action */}
+      <Header
+        businessName={businessProfile.business_name}
+        phone={businessProfile.phone}
+        whatsapp={businessProfile.whatsapp || businessProfile.phone}
+      />
+
+      {/* Main Content Sections in Approved Information Architecture Order */}
+      <main className="flex-1">
+        {/* 2. Hero Section: Primary Service, Value Prop, Conversion Actions */}
+        <Hero businessProfile={businessProfile} />
+
+        {/* 3. Trust Section: Core Value Propositions & Capabilities */}
+        <TrustSection />
+
+        {/* 4. Services Overview: 6 Canonical Service Categories */}
+        <ServicesOverview services={services} />
+
+        {/* 5. How It Works: 5-Step Frictionless Workflow */}
+        <ProcessSection />
+
+        {/* 6. Recent Work / Project Gallery Preview */}
+        <RecentWorkSection
+          galleryItems={galleryItems}
+          categories={galleryCategories}
+        />
+
+        {/* 7. Customer Reviews & Social Proof */}
+        <ReviewsSection reviews={reviews} />
+
+        {/* 8. FAQ Preview: Clear Answers to Common Objections */}
+        <FAQPreview faqs={faqs} />
+
+        {/* 9. Final CTA & Quote Request Form */}
+        <FinalCTASection
+          businessProfile={businessProfile}
+          services={services}
+        />
+      </main>
+
+      {/* 10. Footer with Business Information and Navigation */}
+      <Footer
+        businessName={businessProfile.business_name}
+        phone={businessProfile.phone}
+        whatsapp={businessProfile.whatsapp || businessProfile.phone}
+        city={businessProfile.city}
+      />
+    </div>
   );
 }
