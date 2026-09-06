@@ -42,39 +42,44 @@ export const ProcessSection: React.FC = () => {
     <Section background="white" spacing="default" id="how-it-works">
       <Container>
         <SectionHeading
-          eyebrow="Simple 5-Step Process"
+          eyebrow="Workflow Protocol"
           title="How Our Core Cutting Service Works"
           description="Clear and straightforward workflow from your initial inquiry to final clean hole handover."
           align="center"
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mt-10 sm:mt-12">
-          {steps.map((step, index) => {
-            const Icon = step.icon;
-            return (
-              <div
-                key={index}
-                className="relative flex flex-col p-6 rounded-xl bg-brand-bg/40 border border-brand-border hover:border-brand-secondary-blue/40 transition-all group"
-              >
-                {/* Step Number Badge */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="h-10 w-10 rounded-lg bg-white border border-brand-border shadow-xs flex items-center justify-center text-brand-navy group-hover:text-brand-secondary-blue transition-colors">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </div>
-                  <span className="text-xl font-extrabold text-brand-secondary-blue/30 group-hover:text-brand-secondary-blue/60 transition-colors">
-                    {step.number}
-                  </span>
-                </div>
+        <div className="relative mt-12 sm:mt-16">
+          {/* Subtle connecting line across cards on desktop */}
+          <div className="hidden lg:block absolute top-1/2 left-8 right-8 h-0.5 bg-brand-border -translate-y-12 z-0 pointer-events-none" />
 
-                <h3 className="text-base font-bold text-brand-navy group-hover:text-brand-secondary-blue transition-colors">
-                  {step.title}
-                </h3>
-                <p className="mt-2 text-xs sm:text-sm text-brand-muted leading-relaxed">
-                  {step.description}
-                </p>
-              </div>
-            );
-          })}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 relative z-10">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div
+                  key={index}
+                  className="relative flex flex-col p-6 rounded-2xl bg-white border border-brand-border/90 shadow-xs hover:shadow-lg hover:border-brand-accent-blue/50 transition-all duration-300 hover:-translate-y-1 group"
+                >
+                  {/* Step Number & Icon Header */}
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="h-12 w-12 rounded-xl bg-brand-light-blue/50 border border-brand-accent-blue/30 flex items-center justify-center text-brand-navy group-hover:bg-brand-navy group-hover:text-white transition-colors duration-200">
+                      <Icon className="h-6 w-6" aria-hidden="true" />
+                    </div>
+                    <span className="font-mono text-2xl font-extrabold text-slate-300 group-hover:text-brand-accent-blue transition-colors">
+                      {step.number}
+                    </span>
+                  </div>
+
+                  <h3 className="text-base font-bold text-brand-navy group-hover:text-brand-secondary-blue transition-colors leading-snug">
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 text-xs sm:text-sm text-brand-muted leading-relaxed flex-1">
+                    {step.description}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </Container>
     </Section>

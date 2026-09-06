@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { mainNavItems } from './navData';
 import { ContactCTA } from '../ui/ContactCTA';
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils';
 
 export const MobileNav: React.FC = () => {
   const pathname = usePathname();
@@ -36,7 +36,7 @@ export const MobileNav: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center justify-center p-2.5 rounded-md text-brand-navy hover:bg-brand-light-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent-blue min-h-[44px] min-w-[44px]"
+        className="inline-flex items-center justify-center p-2.5 rounded-lg text-brand-navy hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent-blue min-h-[44px] min-w-[44px] transition-colors"
         aria-expanded={isOpen}
         aria-controls="mobile-navigation-drawer"
         aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
@@ -63,12 +63,9 @@ export const MobileNav: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <Link
                         href={item.href}
-                        className={clsx(
+                        className={cn(
                           'py-3 text-lg font-bold transition-colors',
-                          {
-                            'text-brand-navy': isActive,
-                            'text-brand-text': !isActive,
-                          }
+                          isActive ? 'text-brand-navy' : 'text-brand-text'
                         )}
                       >
                         {item.label}
@@ -80,7 +77,7 @@ export const MobileNav: React.FC = () => {
                         aria-label="Toggle service sub-items"
                       >
                         <ChevronDown
-                          className={clsx('h-5 w-5 transition-transform duration-200', {
+                          className={cn('h-5 w-5 transition-transform duration-200', {
                             'rotate-180': servicesExpanded,
                           })}
                         />
@@ -93,7 +90,7 @@ export const MobileNav: React.FC = () => {
                           <Link
                             key={child.href}
                             href={child.href}
-                            className={clsx('block py-2 text-base font-medium transition-colors', {
+                            className={cn('block py-2 text-base font-medium transition-colors', {
                               'text-brand-navy font-semibold': pathname === child.href,
                               'text-brand-muted hover:text-brand-navy': pathname !== child.href,
                             })}
@@ -111,7 +108,7 @@ export const MobileNav: React.FC = () => {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={clsx(
+                  className={cn(
                     'block py-3 text-lg font-bold border-b border-brand-border/60 transition-colors',
                     {
                       'text-brand-navy font-extrabold': isActive,
@@ -126,7 +123,7 @@ export const MobileNav: React.FC = () => {
           </div>
 
           {/* Quick Action Footer in Drawer */}
-          <div className="p-5 border-t border-brand-border bg-brand-bg space-y-3">
+          <div className="p-5 border-t border-brand-border bg-slate-50 space-y-3">
             <ContactCTA type="call" fullWidth size="lg" />
             <ContactCTA type="whatsapp" fullWidth size="lg" />
           </div>
