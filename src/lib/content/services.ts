@@ -26,6 +26,15 @@ export function getServiceBySlug(slug: string): Service | undefined {
 }
 
 /**
+ * Retrieves related services for a given slug.
+ */
+export function getRelatedServices(currentSlug: string, limit = 3): Service[] {
+  return getActiveServices()
+    .filter((service) => service.slug !== currentSlug)
+    .slice(0, limit);
+}
+
+/**
  * Validates a service object using Zod schema.
  */
 export function validateService(service: unknown): boolean {
