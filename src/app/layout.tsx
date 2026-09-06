@@ -78,6 +78,20 @@ export default function RootLayout({
     <html lang="en" className={`${plusJakartaSans.variable} scroll-smooth`}>
       <head>
         <JsonLd data={localBusinessSchema} />
+        {/* Unregister stale service workers from previous projects running on port 3000 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for (var i = 0; i < registrations.length; i++) {
+                    registrations[i].unregister();
+                  }
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className="min-h-screen bg-brand-bg text-brand-text font-sans antialiased selection:bg-brand-light-blue selection:text-brand-navy">
         <PageViewTracker />
