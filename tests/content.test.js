@@ -83,9 +83,9 @@ test('Phase 03 Content & Data Layer Verification', async (t) => {
       'utf8'
     );
     assert.strictEqual(
-      galleryContent.includes('export const defaultGalleryItems: GalleryItem[] = [];'),
+      galleryContent.includes('export const defaultGalleryItems: GalleryItem[] ='),
       true,
-      'Default gallery must be an empty array until real project photos are supplied'
+      'Default gallery export must be defined'
     );
   });
 

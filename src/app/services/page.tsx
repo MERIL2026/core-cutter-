@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Section } from '@/components/layout/Section';
@@ -84,45 +85,61 @@ export default function ServicesPage() {
             {/* Breadcrumb */}
             <Breadcrumbs items={[{ label: 'Services' }]} className="text-slate-400 mb-6" />
 
-            <div className="max-w-3xl space-y-6">
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-secondary-blue/30 border border-brand-secondary-blue/40 text-brand-accent-blue text-xs font-semibold tracking-wide">
-                <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>Complete Diamond Core Cutting Portfolio</span>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+              <div className="lg:col-span-7 space-y-6">
+                <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-secondary-blue/30 border border-brand-secondary-blue/40 text-brand-accent-blue text-xs font-semibold tracking-wide">
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Complete Diamond Core Cutting Portfolio</span>
+                </div>
+
+                {/* Exactly One H1 for the Services Index Page */}
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                  Specialized Core Cutting &amp; Concrete Drilling Services
+                </h1>
+
+                <p className="text-base sm:text-lg text-slate-300 leading-relaxed">
+                  From precision residential split AC installations to heavy-duty industrial RCC slab drilling, discover our comprehensive range of rotary diamond core drilling solutions.
+                </p>
+
+                {/* Direct CTAs */}
+                <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                  <ContactCTA
+                    type="quote"
+                    quoteHref="#quote-section"
+                    size="md"
+                    label="Get a Free Quote"
+                    className="w-full sm:w-auto"
+                  />
+                  <ContactCTA
+                    type="call"
+                    phone={businessProfile.phone}
+                    size="md"
+                    label="Call Technician"
+                    variant="outline"
+                    className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 hover:border-white"
+                  />
+                  <ContactCTA
+                    type="whatsapp"
+                    whatsapp={businessProfile.whatsapp || businessProfile.phone}
+                    size="md"
+                    label="WhatsApp Us"
+                    className="w-full sm:w-auto"
+                  />
+                </div>
               </div>
 
-              {/* Exactly One H1 for the Services Index Page */}
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-                Specialized Core Cutting &amp; Concrete Drilling Services
-              </h1>
-
-              <p className="text-base sm:text-lg text-slate-300 leading-relaxed">
-                From precision residential split AC installations to heavy-duty industrial RCC slab drilling, discover our comprehensive range of rotary diamond core drilling solutions.
-              </p>
-
-              {/* Direct CTAs */}
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                <ContactCTA
-                  type="quote"
-                  quoteHref="#quote-section"
-                  size="md"
-                  label="Get a Free Quote"
-                  className="w-full sm:w-auto"
-                />
-                <ContactCTA
-                  type="call"
-                  phone={businessProfile.phone}
-                  size="md"
-                  label="Call Technician"
-                  variant="outline"
-                  className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 hover:border-white"
-                />
-                <ContactCTA
-                  type="whatsapp"
-                  whatsapp={businessProfile.whatsapp || businessProfile.phone}
-                  size="md"
-                  label="WhatsApp Us"
-                  className="w-full sm:w-auto"
-                />
+              {/* Hero Image */}
+              <div className="lg:col-span-5 flex justify-center lg:justify-end">
+                <div className="relative aspect-4/3 w-full rounded-2xl overflow-hidden border border-brand-accent-blue/30 shadow-2xl group">
+                  <Image
+                    src="/images/rcc-core-cutting.jpg"
+                    alt="Heavy RCC diamond core cutting rig in operation"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 40vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    priority
+                  />
+                </div>
               </div>
             </div>
           </Container>

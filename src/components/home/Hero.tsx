@@ -1,9 +1,9 @@
 import React from 'react';
+import Image from 'next/image';
 import { Container } from '../layout/Container';
 import { ContactCTA } from '../ui/ContactCTA';
-import { DiamondCoreVisual } from '../ui/DiamondCoreVisual';
 import { BusinessProfile } from '@/types';
-import { ShieldCheck, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export interface HeroProps {
   businessProfile: BusinessProfile;
@@ -11,7 +11,7 @@ export interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-brand-navy via-[#0C2A47] to-[#081B2E] text-white pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-20 lg:pb-24 border-b border-brand-accent-blue/15">
+    <section className="relative overflow-hidden bg-gradient-to-b from-brand-navy via-[#0C2A47] to-[#081B2E] text-white pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-16 lg:pb-24 border-b border-brand-accent-blue/15">
       {/* Precision Blueprint Grid Layer */}
       <div
         className="absolute inset-0 bg-technical-grid opacity-20 pointer-events-none"
@@ -30,11 +30,11 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
 
       <Container className="relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          {/* Main Hero Editorial Copy & CTAs */}
+          {/* Main Hero Copy & CTAs */}
           <div className="lg:col-span-7 space-y-6 sm:space-y-8 text-center lg:text-left">
             {/* Editorial Eyebrow Tag */}
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-accent-blue/15 border border-brand-accent-blue/30 text-brand-accent-blue text-xs font-semibold tracking-wide animate-fade-in-up">
-              <ShieldCheck className="h-3.5 w-3.5 text-brand-accent-blue" aria-hidden="true" />
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-accent-blue/15 border border-brand-accent-blue/30 text-brand-accent-blue text-xs sm:text-sm font-semibold tracking-wide animate-fade-in-up">
+              <ShieldCheck className="h-4 w-4 text-brand-accent-blue" aria-hidden="true" />
               <span>Diamond Rotary Concrete Drilling</span>
             </div>
 
@@ -42,7 +42,7 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-extrabold tracking-tight text-white leading-[1.12] animate-fade-in-up animation-delay-100">
               Precision Core Cutting for{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-accent-blue via-[#76BBE0] to-white">
-                AC & RCC Concrete
+                AC &amp; RCC Concrete
               </span>{' '}
               Work
             </h1>
@@ -95,12 +95,28 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
             </div>
           </div>
 
-          {/* Hero Visual Area: Bespoke Diamond Core Engineering Illustration */}
+          {/* Hero Visual Area: High-Impact Action Photo */}
           <div className="lg:col-span-5 flex justify-center lg:justify-end animate-fade-in-up animation-delay-300">
-            <DiamondCoreVisual variant="hero" />
+            <div className="relative aspect-4/3 w-full max-w-[500px] rounded-2xl overflow-hidden border border-brand-accent-blue/30 shadow-2xl group">
+              <Image
+                src="/images/home-hero.jpg"
+                alt="Precision diamond core drilling in concrete wall with rotary core drill rig"
+                fill
+                sizes="(max-width: 1024px) 100vw, 40vw"
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/80 via-transparent to-transparent flex items-end p-4">
+                <div className="text-xs text-slate-200 font-medium flex items-center space-x-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>On-Site Precision Rotary Diamond Coring</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </Container>
     </section>
   );
 };
+

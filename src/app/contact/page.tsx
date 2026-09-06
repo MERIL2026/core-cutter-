@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Section } from '@/components/layout/Section';
@@ -55,36 +56,52 @@ export default function ContactPage() {
           <Container>
             <Breadcrumbs items={[{ label: 'Contact' }]} className="text-slate-400 mb-6" />
 
-            <div className="max-w-3xl space-y-6">
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-secondary-blue/30 border border-brand-secondary-blue/40 text-brand-accent-blue text-xs font-semibold tracking-wide">
-                <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>Immediate Booking &amp; Estimates</span>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+              <div className="lg:col-span-7 space-y-6">
+                <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-secondary-blue/30 border border-brand-secondary-blue/40 text-brand-accent-blue text-xs font-semibold tracking-wide">
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Immediate Booking &amp; Estimates</span>
+                </div>
+
+                {/* Exactly One H1 */}
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                  Contact Our Core Cutting Team
+                </h1>
+
+                <p className="text-base sm:text-lg text-slate-300 leading-relaxed">
+                  Connect directly with our diamond drilling technicians for quick quotes, hole diameter recommendations, and convenient job scheduling.
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                  <ContactCTA
+                    type="call"
+                    phone={businessProfile.phone}
+                    size="md"
+                    label={`Call: ${businessProfile.phone}`}
+                    className="w-full sm:w-auto shadow-md"
+                  />
+                  <ContactCTA
+                    type="whatsapp"
+                    whatsapp={businessProfile.whatsapp || businessProfile.phone}
+                    size="md"
+                    label="WhatsApp Us"
+                    className="w-full sm:w-auto"
+                  />
+                </div>
               </div>
 
-              {/* Exactly One H1 */}
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-                Contact Our Core Cutting Team
-              </h1>
-
-              <p className="text-base sm:text-lg text-slate-300 leading-relaxed">
-                Connect directly with our diamond drilling technicians for quick quotes, hole diameter recommendations, and convenient job scheduling.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                <ContactCTA
-                  type="call"
-                  phone={businessProfile.phone}
-                  size="md"
-                  label={`Call: ${businessProfile.phone}`}
-                  className="w-full sm:w-auto shadow-md"
-                />
-                <ContactCTA
-                  type="whatsapp"
-                  whatsapp={businessProfile.whatsapp || businessProfile.phone}
-                  size="md"
-                  label="WhatsApp Us"
-                  className="w-full sm:w-auto"
-                />
+              {/* Hero Image */}
+              <div className="lg:col-span-5 flex justify-center lg:justify-end">
+                <div className="relative aspect-4/3 w-full rounded-2xl overflow-hidden border border-brand-accent-blue/30 shadow-2xl group">
+                  <Image
+                    src="/images/custom-core-drilling.jpg"
+                    alt="Contact our certified core drilling technicians"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 40vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    priority
+                  />
+                </div>
               </div>
             </div>
           </Container>

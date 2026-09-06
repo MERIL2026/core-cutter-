@@ -60,6 +60,9 @@ export const metadata: Metadata = {
     description:
       'Professional diamond core cutting, RCC slab drilling, AC drain hole creation, and concrete wall penetrations.',
   },
+  icons: {
+    icon: '/icon.svg',
+  },
   alternates: {
     canonical: '/',
   },

@@ -37,7 +37,7 @@ export const canonicalServices: Service[] = [
         description: 'Extracting the clean cylindrical concrete core and clearing debris for AC technician installation.',
       },
     ],
-    image_url: null,
+    image_url: '/images/ac-core-cutting.jpg',
     seo_title: 'AC Core Cutting Service | Precision Wall Hole Drilling',
     seo_description:
       'Expert diamond AC core cutting services for split and window AC installation. Clean 2-5 inch circular wall openings with zero vibration damage.',
@@ -78,7 +78,7 @@ export const canonicalServices: Service[] = [
         description: 'Removing concrete/rebar slug and inspecting the finished opening for exact diameter tolerance.',
       },
     ],
-    image_url: null,
+    image_url: '/images/rcc-core-cutting.jpg',
     seo_title: 'RCC Core Cutting Services | Reinforced Concrete Drilling',
     seo_description:
       'Heavy-duty RCC core cutting for concrete slabs, beams, and shear walls. Vibration-free diamond drilling through steel rebar with precision.',
@@ -119,7 +119,7 @@ export const canonicalServices: Service[] = [
         description: 'Verifying continuous downward slope and clearance for standard drain hoses.',
       },
     ],
-    image_url: null,
+    image_url: '/images/ac-drain-hole.jpg',
     seo_title: 'AC Drain Hole Drilling | Angled Drainage Core Cutting',
     seo_description:
       'Professional AC drain hole core cutting with proper downward slope to ensure smooth condensate drainage and eliminate indoor water leaks.',
@@ -160,7 +160,7 @@ export const canonicalServices: Service[] = [
         description: 'Extracting debris and leaving the opening ready for immediate sleeve installation.',
       },
     ],
-    image_url: null,
+    image_url: '/images/concrete-wall-drilling.jpg',
     seo_title: 'Concrete Wall Drilling | Diamond Core Wall Penetrations',
     seo_description:
       'Precise concrete wall drilling and diamond coring services for residential and commercial walls. No chipping, clean edges, and rapid turnaround.',
@@ -201,7 +201,7 @@ export const canonicalServices: Service[] = [
         description: 'Checking dimensions and pipe fitment clearance with contractor requirements.',
       },
     ],
-    image_url: null,
+    image_url: '/images/pipe-cable-passage.jpg',
     seo_title: 'Pipe & Cable Passage Core Cutting | MEP Penetration Drilling',
     seo_description:
       'Accurate diamond core cutting for plumbing pipes, electrical conduit, and HVAC cables. Clean floor and wall penetrations for MEP contractors.',
@@ -242,7 +242,7 @@ export const canonicalServices: Service[] = [
         description: 'Reviewing opening dimensions and ensuring complete customer satisfaction.',
       },
     ],
-    image_url: null,
+    image_url: '/images/custom-core-drilling.jpg',
     seo_title: 'Custom Core Cutting & Specialized Drilling Services',
     seo_description:
       'Custom diameter diamond core cutting and specialized concrete drilling solutions for unique residential, commercial, and industrial requirements.',

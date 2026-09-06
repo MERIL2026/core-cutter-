@@ -3,7 +3,6 @@ import Image from 'next/image';
 import { Container } from '../layout/Container';
 import { Breadcrumbs } from '../ui/Breadcrumbs';
 import { ContactCTA } from '../ui/ContactCTA';
-import { DiamondCoreVisual } from '../ui/DiamondCoreVisual';
 import { Service, BusinessProfile } from '@/types';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
@@ -31,9 +30,9 @@ export const ServiceHero: React.FC<ServiceHeroProps> = ({ service, businessProfi
           className="text-slate-300 mb-6"
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className={service.image_url ? "grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center" : "max-w-3xl"}>
           {/* Main Info & CTAs */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className={service.image_url ? "lg:col-span-7 space-y-6" : "space-y-6"}>
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-accent-blue/15 border border-brand-accent-blue/30 text-brand-accent-blue text-xs font-semibold tracking-wide">
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Specialized Core Drilling Solution</span>
@@ -92,8 +91,8 @@ export const ServiceHero: React.FC<ServiceHeroProps> = ({ service, businessProfi
           </div>
 
           {/* Visual Media Slot */}
-          <div className="lg:col-span-5 flex justify-center lg:justify-end">
-            {service.image_url ? (
+          {service.image_url ? (
+            <div className="lg:col-span-5 flex justify-center lg:justify-end">
               <div className="relative aspect-4/3 w-full rounded-2xl overflow-hidden border border-brand-accent-blue/30 shadow-2xl">
                 <Image
                   src={service.image_url}
@@ -104,12 +103,11 @@ export const ServiceHero: React.FC<ServiceHeroProps> = ({ service, businessProfi
                   priority
                 />
               </div>
-            ) : (
-              <DiamondCoreVisual variant="service" serviceName={service.name} />
-            )}
-          </div>
+            </div>
+          ) : null}
         </div>
       </Container>
     </div>
   );
 };
+
