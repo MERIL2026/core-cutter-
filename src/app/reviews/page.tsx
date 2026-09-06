@@ -23,10 +23,16 @@ import {
   Star,
 } from 'lucide-react';
 
+import { JsonLd } from '@/components/seo/JsonLd';
+import { generateBreadcrumbSchema } from '@/lib/seo/structuredData';
+
 export const metadata: Metadata = {
   title: 'Customer Reviews | AC & RCC Core Cutting Feedback',
   description:
     'Read verified client testimonials and feedback regarding our AC core cutting, concrete drilling, and wall opening services.',
+  alternates: {
+    canonical: '/reviews',
+  },
 };
 
 export default function ReviewsPage() {
@@ -34,9 +40,11 @@ export default function ReviewsPage() {
   const reviews = getApprovedReviews();
   const services = getActiveServices();
   const serviceOptions = services.map((s) => ({ id: s.slug, name: s.name }));
+  const breadcrumbSchema = generateBreadcrumbSchema([{ name: 'Reviews', url: '/reviews' }]);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg text-brand-text">
+      <JsonLd data={breadcrumbSchema} />
       {/* 1. Header */}
       <Header
         businessName={businessProfile.business_name}

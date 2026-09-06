@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Container } from '@/components/layout/Container';
@@ -12,6 +13,15 @@ import { GalleryGrid } from '@/components/gallery/GalleryGrid';
 import { FAQAccordion } from '@/components/faq/FAQAccordion';
 import { ContactFormUI } from '@/components/forms/ContactFormUI';
 import { getActiveServices, getActiveFAQs, getActiveGalleryItems, getGalleryCategories } from '@/lib/content';
+
+export const metadata: Metadata = {
+  title: 'Component Showcase (Development)',
+  description: 'Internal development showcase for reusable UI components and design tokens.',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 const canonicalServices = getActiveServices();
 const canonicalFaqs = getActiveFAQs();

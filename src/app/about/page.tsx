@@ -25,16 +25,23 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
+import { JsonLd } from '@/components/seo/JsonLd';
+import { generateBreadcrumbSchema } from '@/lib/seo/structuredData';
+
 export const metadata: Metadata = {
   title: 'About Us | Professional AC & RCC Core Cutting Services',
   description:
     'Learn about our professional diamond core cutting, precision concrete drilling, and wall penetration services for residential and commercial projects.',
+  alternates: {
+    canonical: '/about',
+  },
 };
 
 export default function AboutPage() {
   const businessProfile = getBusinessProfile();
   const services = getActiveServices();
   const serviceOptions = services.map((s) => ({ id: s.slug, name: s.name }));
+  const breadcrumbSchema = generateBreadcrumbSchema([{ name: 'About', url: '/about' }]);
 
   const capabilityPillars = [
     {
@@ -65,6 +72,7 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg text-brand-text">
+      <JsonLd data={breadcrumbSchema} />
       {/* 1. Header */}
       <Header
         businessName={businessProfile.business_name}

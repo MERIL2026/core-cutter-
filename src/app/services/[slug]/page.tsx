@@ -2,6 +2,12 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ServiceDetailTemplate } from '@/components/services/ServiceDetailTemplate';
+import { JsonLd } from '@/components/seo/JsonLd';
+import {
+  generateServiceSchema,
+  generateFAQSchema,
+  generateBreadcrumbSchema,
+} from '@/lib/seo/structuredData';
 import {
   getAllServices,
   getActiveServices,
@@ -35,9 +41,21 @@ export function generateMetadata({ params }: ServicePageProps): Metadata {
     };
   }
 
+  const title = service.seo_title || `${service.name} | Professional Core Cutting Services`;
+  const description = service.seo_description || service.summary;
+
   return {
-    title: service.seo_title || `${service.name} | Professional Core Cutting Services`,
-    description: service.seo_description || service.summary,
+    title,
+    description,
+    alternates: {
+      canonical: `/services/${service.slug}`,
+    },
+    openGraph: {
+      title,
+      description,
+      type: 'article',
+      url: `/services/${service.slug}`,
+    },
   };
 }
 
@@ -59,13 +77,25 @@ export default function ServiceDetailPage({ params }: ServicePageProps) {
     new Map([...serviceFaqs, ...generalFaqs].map((item) => [item.id, item])).values()
   );
 
+  const serviceSchema = generateServiceSchema(service, businessProfile);
+  const faqSchema = generateFAQSchema(combinedFaqs);
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Services', url: '/services' },
+    { name: service.name, url: `/services/${service.slug}` },
+  ]);
+
   return (
-    <ServiceDetailTemplate
-      service={service}
-      allServices={allServices}
-      relatedServices={relatedServices}
-      faqs={combinedFaqs}
-      businessProfile={businessProfile}
-    />
+    <>
+      <JsonLd data={serviceSchema} />
+      <JsonLd data={faqSchema} />
+      <JsonLd data={breadcrumbSchema} />
+      <ServiceDetailTemplate
+        service={service}
+        allServices={allServices}
+        relatedServices={relatedServices}
+        faqs={combinedFaqs}
+        businessProfile={businessProfile}
+      />
+    </>
   );
 }

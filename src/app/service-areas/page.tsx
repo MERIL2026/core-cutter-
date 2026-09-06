@@ -24,10 +24,16 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
+import { JsonLd } from '@/components/seo/JsonLd';
+import { generateBreadcrumbSchema } from '@/lib/seo/structuredData';
+
 export const metadata: Metadata = {
   title: 'Service Areas | Local AC & RCC Core Cutting Coverage',
   description:
     'Find local diamond core cutting and concrete drilling coverage areas. Prompt technician dispatch across residential sectors and commercial zones.',
+  alternates: {
+    canonical: '/service-areas',
+  },
 };
 
 export default function ServiceAreasPage() {
@@ -35,9 +41,11 @@ export default function ServiceAreasPage() {
   const serviceAreas = getActiveServiceAreas();
   const services = getActiveServices();
   const serviceOptions = services.map((s) => ({ id: s.slug, name: s.name }));
+  const breadcrumbSchema = generateBreadcrumbSchema([{ name: 'Service Areas', url: '/service-areas' }]);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg text-brand-text">
+      <JsonLd data={breadcrumbSchema} />
       {/* 1. Header */}
       <Header
         businessName={businessProfile.business_name}

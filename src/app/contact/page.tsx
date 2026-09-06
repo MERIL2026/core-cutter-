@@ -21,19 +21,27 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import { JsonLd } from '@/components/seo/JsonLd';
+import { generateBreadcrumbSchema } from '@/lib/seo/structuredData';
+
 export const metadata: Metadata = {
   title: 'Contact Us | Request Core Cutting & Drilling Quote',
   description:
     'Contact our professional AC and RCC diamond core cutting team. Call, WhatsApp, or submit your job details for immediate pricing and scheduling.',
+  alternates: {
+    canonical: '/contact',
+  },
 };
 
 export default function ContactPage() {
   const businessProfile = getBusinessProfile();
   const services = getActiveServices();
   const serviceOptions = services.map((s) => ({ id: s.slug, name: s.name }));
+  const breadcrumbSchema = generateBreadcrumbSchema([{ name: 'Contact', url: '/contact' }]);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg text-brand-text">
+      <JsonLd data={breadcrumbSchema} />
       {/* 1. Header */}
       <Header
         businessName={businessProfile.business_name}

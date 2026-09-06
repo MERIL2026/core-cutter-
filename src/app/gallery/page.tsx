@@ -17,10 +17,16 @@ import {
 } from '@/lib/content';
 import { ShieldCheck, Camera, Clock, MapPin } from 'lucide-react';
 
+import { JsonLd } from '@/components/seo/JsonLd';
+import { generateBreadcrumbSchema } from '@/lib/seo/structuredData';
+
 export const metadata: Metadata = {
   title: 'Project Gallery | AC Core Cutting & Concrete Drilling Proof',
   description:
     'View real documentation of our diamond core cutting, AC pipe holes, RCC slab drilling, and concrete wall penetrations.',
+  alternates: {
+    canonical: '/gallery',
+  },
 };
 
 export default function GalleryPage() {
@@ -29,9 +35,11 @@ export default function GalleryPage() {
   const galleryCategories = getGalleryCategories();
   const services = getActiveServices();
   const serviceOptions = services.map((s) => ({ id: s.slug, name: s.name }));
+  const breadcrumbSchema = generateBreadcrumbSchema([{ name: 'Gallery', url: '/gallery' }]);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg text-brand-text">
+      <JsonLd data={breadcrumbSchema} />
       {/* 1. Header */}
       <Header
         businessName={businessProfile.business_name}

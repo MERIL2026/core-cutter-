@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import {
@@ -19,6 +20,15 @@ import {
   getApprovedReviews,
   getActiveFAQs,
 } from '@/lib/content';
+
+export const metadata: Metadata = {
+  title: 'AC Core Cutting & RCC Concrete Drilling Services',
+  description:
+    'Professional diamond AC core cutting, RCC beam/slab drilling, AC drain holes, and concrete wall penetrations with clean vibration-free execution.',
+  alternates: {
+    canonical: '/',
+  },
+};
 
 export default function HomePage() {
   const businessProfile = getBusinessProfile();

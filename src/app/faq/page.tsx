@@ -22,10 +22,16 @@ import {
   FileQuestion,
 } from 'lucide-react';
 
+import { JsonLd } from '@/components/seo/JsonLd';
+import { generateFAQSchema, generateBreadcrumbSchema } from '@/lib/seo/structuredData';
+
 export const metadata: Metadata = {
   title: 'Frequently Asked Questions | AC & RCC Core Cutting FAQs',
   description:
     'Find clear answers to common questions about diamond core cutting hole sizes, RCC wall penetration, timing, wall safety, and pricing.',
+  alternates: {
+    canonical: '/faq',
+  },
 };
 
 export default function FAQPage() {
@@ -34,8 +40,13 @@ export default function FAQPage() {
   const services = getActiveServices();
   const serviceOptions = services.map((s) => ({ id: s.slug, name: s.name }));
 
+  const faqSchema = generateFAQSchema(faqs);
+  const breadcrumbSchema = generateBreadcrumbSchema([{ name: 'FAQ', url: '/faq' }]);
+
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg text-brand-text">
+      <JsonLd data={faqSchema} />
+      <JsonLd data={breadcrumbSchema} />
       {/* 1. Header */}
       <Header
         businessName={businessProfile.business_name}

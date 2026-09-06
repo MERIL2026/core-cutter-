@@ -1,9 +1,12 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Phone, MessageSquare, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 
 import { defaultBusinessProfile } from '@/content/business';
+import { trackEvent } from '@/lib/analytics';
 
 export type CTAType = 'call' | 'whatsapp' | 'quote';
 
@@ -37,6 +40,12 @@ export const ContactCTA: React.FC<ContactCTAProps> = ({
       <a
         href={href}
         aria-label={`Call business at ${phone}`}
+        onClick={() => {
+          trackEvent({
+            event_name: 'phone_click',
+            metadata: { cta_label: displayLabel },
+          });
+        }}
         className={clsx(
           'inline-flex items-center justify-center font-semibold rounded-md transition-all duration-150',
           'min-h-[44px] min-w-[44px] touch-manipulation select-none',
@@ -77,6 +86,12 @@ export const ContactCTA: React.FC<ContactCTAProps> = ({
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat on WhatsApp"
+        onClick={() => {
+          trackEvent({
+            event_name: 'whatsapp_click',
+            metadata: { cta_label: displayLabel },
+          });
+        }}
         className={clsx(
           'inline-flex items-center justify-center font-semibold rounded-md transition-all duration-150',
           'min-h-[44px] min-w-[44px] touch-manipulation select-none',
@@ -109,6 +124,12 @@ export const ContactCTA: React.FC<ContactCTAProps> = ({
   return (
     <Link
       href={quoteHref}
+      onClick={() => {
+        trackEvent({
+          event_name: 'quote_start',
+          metadata: { cta_label: displayLabel, trigger: 'quote_button_click' },
+        });
+      }}
       className={clsx(
         'inline-flex items-center justify-center font-semibold rounded-md transition-all duration-150',
         'min-h-[44px] min-w-[44px] touch-manipulation select-none',

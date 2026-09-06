@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Send, CheckCircle2, AlertCircle, Phone, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
+import { trackEvent } from '@/lib/analytics';
 
 export interface FormValues {
   name: string;
@@ -48,12 +49,26 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
     message: '',
   });
 
+  const [hasTrackedStart, setHasTrackedStart] = useState(false);
   const [honeypot, setHoneypot] = useState('');
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
+
+  const handleFieldInteraction = () => {
+    if (!hasTrackedStart) {
+      setHasTrackedStart(true);
+      trackEvent({
+        event_name: 'quote_start',
+        metadata: {
+          trigger: 'form_interaction',
+          service_id: values.serviceId,
+        },
+      });
+    }
+  };
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof FormValues, string>> = {};
@@ -97,6 +112,13 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
         const success = await onSubmitSimulated(values);
         if (success) {
           setIsSuccess(true);
+          trackEvent({
+            event_name: 'quote_submit',
+            metadata: {
+              service_id: values.serviceId,
+              is_simulated: true,
+            },
+          });
         } else {
           setServerError('Failed to send quote request. Please try calling directly.');
         }
@@ -129,6 +151,16 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
 
       if (response.status === 201 && data.success) {
         setIsSuccess(true);
+        // Dispatch quote_submit ONLY after server confirms persistent storage
+        trackEvent({
+          event_name: 'quote_submit',
+          metadata: {
+            service_id: values.serviceId,
+            source_page: sourcePage,
+            has_message: Boolean(values.message),
+            whatsapp_opt_in: values.whatsappPreference,
+          },
+        });
       } else if (response.status === 429) {
         setIsRateLimited(true);
         setServerError(
@@ -163,6 +195,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
     setIsSuccess(false);
     setServerError(null);
     setIsRateLimited(false);
+    setHasTrackedStart(false);
     setValues({
       name: '',
       phone: '',
@@ -272,7 +305,9 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           id="name"
           type="text"
           value={values.name}
+          onFocus={handleFieldInteraction}
           onChange={(e) => {
+            handleFieldInteraction();
             setValues({ ...values, name: e.target.value });
             if (errors.name) setErrors({ ...errors, name: undefined });
           }}
@@ -305,7 +340,9 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           id="phone"
           type="tel"
           value={values.phone}
+          onFocus={handleFieldInteraction}
           onChange={(e) => {
+            handleFieldInteraction();
             setValues({ ...values, phone: e.target.value });
             if (errors.phone) setErrors({ ...errors, phone: undefined });
           }}
@@ -335,7 +372,10 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           id="whatsappPreference"
           type="checkbox"
           checked={values.whatsappPreference}
-          onChange={(e) => setValues({ ...values, whatsappPreference: e.target.checked })}
+          onChange={(e) => {
+            handleFieldInteraction();
+            setValues({ ...values, whatsappPreference: e.target.checked });
+          }}
           disabled={isSubmitting}
           className="h-4 w-4 rounded border-brand-border text-brand-navy focus:ring-brand-accent-blue disabled:opacity-60"
         />
@@ -352,7 +392,11 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
         <select
           id="serviceId"
           value={values.serviceId}
-          onChange={(e) => setValues({ ...values, serviceId: e.target.value })}
+          onFocus={handleFieldInteraction}
+          onChange={(e) => {
+            handleFieldInteraction();
+            setValues({ ...values, serviceId: e.target.value });
+          }}
           disabled={isSubmitting}
           className="w-full px-4 py-2.5 text-sm rounded-md border border-brand-border bg-white text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-accent-blue disabled:opacity-60"
         >
@@ -373,7 +417,9 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           id="location"
           type="text"
           value={values.location}
+          onFocus={handleFieldInteraction}
           onChange={(e) => {
+            handleFieldInteraction();
             setValues({ ...values, location: e.target.value });
             if (errors.location) setErrors({ ...errors, location: undefined });
           }}
@@ -406,7 +452,11 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           id="message"
           rows={3}
           value={values.message}
-          onChange={(e) => setValues({ ...values, message: e.target.value })}
+          onFocus={handleFieldInteraction}
+          onChange={(e) => {
+            handleFieldInteraction();
+            setValues({ ...values, message: e.target.value });
+          }}
           disabled={isSubmitting}
           placeholder="e.g. Need 3 core cutting holes for split AC installation on 2nd floor concrete wall."
           className="w-full px-4 py-2.5 text-sm rounded-md border border-brand-border bg-brand-bg/50 focus:outline-none focus:ring-2 focus:ring-brand-accent-blue focus:bg-white transition-colors disabled:opacity-60"
