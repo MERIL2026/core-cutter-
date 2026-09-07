@@ -9,10 +9,14 @@ export const ChatbotWidget: React.FC = () => {
   const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
-    // Show subtle greeting tooltip after 3 seconds on first load
-    const timer = setTimeout(() => {
+    // Show subtle greeting tooltip after 4 seconds, auto-dismiss after 6 seconds
+    const showTimer = setTimeout(() => {
       setShowTooltip(true);
-    }, 3000);
+    }, 4000);
+
+    const hideTimer = setTimeout(() => {
+      setShowTooltip(false);
+    }, 10000);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -23,7 +27,8 @@ export const ChatbotWidget: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
@@ -34,7 +39,7 @@ export const ChatbotWidget: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-[64px] right-3 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end pointer-events-none">
+    <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] right-3 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end pointer-events-none">
       {/* Expanded Chat Window */}
       {isOpen && (
         <div className="pointer-events-auto mb-3 origin-bottom-right transition-all max-w-[calc(100vw-24px)]">
@@ -42,9 +47,9 @@ export const ChatbotWidget: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Greeting Pill (before opening) */}
+      {/* Floating Greeting Pill (before opening, only on tablet/desktop to protect mobile space) */}
       {!isOpen && showTooltip && (
-        <div className="pointer-events-auto mb-2 flex items-center space-x-2 bg-slate-900/95 backdrop-blur-md text-white px-3 py-1.5 rounded-2xl shadow-xl border border-slate-700 animate-fade-in-up max-w-[280px] sm:max-w-none">
+        <div className="pointer-events-auto mb-2 hidden sm:flex items-center space-x-2 bg-slate-900/95 backdrop-blur-md text-white px-3.5 py-2 rounded-2xl shadow-xl border border-slate-700 animate-fade-in-up max-w-[300px]">
           <Sparkles className="h-3.5 w-3.5 text-brand-orange shrink-0 animate-pulse" />
           <span className="text-[11px] sm:text-xs font-semibold leading-tight">
             Need Help? Ask in <strong className="text-brand-orange">English, ગુજરાતી, हिंदी</strong>

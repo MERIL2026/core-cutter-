@@ -25,10 +25,21 @@ export const ChippingVsCoringSlider: React.FC = () => {
     setSliderPosition(percentage);
   }, []);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    if (e.touches.length > 0) {
+      handleMove(e.touches[0].clientX);
+    }
+  };
+
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length > 0) {
       handleMove(e.touches[0].clientX);
     }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -61,8 +72,11 @@ export const ChippingVsCoringSlider: React.FC = () => {
           onMouseUp={() => setIsDragging(false)}
           onMouseLeave={() => setIsDragging(false)}
           onMouseMove={handleMouseMove}
+          onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
-          className="relative h-[480px] sm:h-[420px] md:h-[460px] w-full max-w-5xl mx-auto rounded-3xl overflow-hidden border-2 border-slate-700 shadow-2xl select-none cursor-ew-resize group"
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          className="relative h-[480px] sm:h-[420px] md:h-[460px] w-full max-w-5xl mx-auto rounded-3xl overflow-hidden border-2 border-slate-700 shadow-2xl select-none cursor-ew-resize group touch-none"
         >
           {/* RIGHT SIDE: Diamond Core Cutting (Safe) */}
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/90 via-slate-900 to-slate-950 p-6 sm:p-8 flex flex-col justify-between">

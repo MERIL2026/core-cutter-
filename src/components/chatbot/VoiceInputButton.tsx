@@ -18,6 +18,8 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(true);
   const recognitionRef = useRef<any>(null);
+  const onTranscriptRef = useRef(onTranscript);
+  onTranscriptRef.current = onTranscript;
 
   useEffect(() => {
     // Check browser speech recognition support
@@ -49,7 +51,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       recognition.onresult = (event: any) => {
         const transcript = event.results?.[0]?.[0]?.transcript;
         if (transcript) {
-          onTranscript(transcript);
+          onTranscriptRef.current(transcript);
         }
         setIsListening(false);
       };
@@ -76,7 +78,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         } catch {}
       }
     };
-  }, [language, onTranscript]);
+  }, [language]);
 
   const toggleListening = () => {
     if (!isSupported || disabled) return;

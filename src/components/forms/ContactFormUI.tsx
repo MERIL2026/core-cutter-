@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Send, CheckCircle2, AlertCircle, Phone, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { trackEvent } from '@/lib/analytics';
+import { defaultBusinessProfile } from '@/content/business';
 
 export interface FormValues {
   name: string;
@@ -48,6 +49,22 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
     location: '',
     message: '',
   });
+
+  useEffect(() => {
+    const handlePrefill = (e: Event) => {
+      const customEvent = e as CustomEvent<Partial<FormValues>>;
+      if (customEvent.detail) {
+        setValues((prev) => ({
+          ...prev,
+          ...(customEvent.detail.name ? { name: customEvent.detail.name } : {}),
+          ...(customEvent.detail.phone ? { phone: customEvent.detail.phone } : {}),
+          ...(customEvent.detail.serviceId ? { serviceId: customEvent.detail.serviceId } : {}),
+        }));
+      }
+    };
+    window.addEventListener('quote_prefill', handlePrefill);
+    return () => window.removeEventListener('quote_prefill', handlePrefill);
+  }, []);
 
   const [hasTrackedStart, setHasTrackedStart] = useState(false);
   const [honeypot, setHoneypot] = useState('');
@@ -282,14 +299,14 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
 
           <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
             <a
-              href="tel:919876543210"
+              href={`tel:${defaultBusinessProfile.phone.replace(/[^\d+]/g, '')}`}
               className="inline-flex items-center space-x-1 text-xs font-bold text-brand-dark bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-xs hover:border-brand-orange"
             >
               <Phone className="h-3.5 w-3.5 text-brand-orange" />
               <span>Call Direct</span>
             </a>
             <a
-              href="https://wa.me/919876543210"
+              href={`https://wa.me/${(defaultBusinessProfile.whatsapp || defaultBusinessProfile.phone).replace(/\D/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center space-x-1 text-xs font-bold text-emerald-700 bg-white px-3 py-1.5 rounded-full border border-emerald-200 shadow-xs hover:bg-emerald-50"
@@ -316,7 +333,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
             setValues({ ...values, name: e.target.value });
             if (errors.name) setErrors({ ...errors, name: undefined });
           }}
-          placeholder="e.g. Rahul Sharma"
+          placeholder="Enter your name"
           aria-invalid={!!errors.name}
           aria-describedby={errors.name ? 'name-error' : undefined}
           disabled={isSubmitting}
@@ -351,7 +368,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
             setValues({ ...values, phone: e.target.value });
             if (errors.phone) setErrors({ ...errors, phone: undefined });
           }}
-          placeholder="e.g. 9876543210"
+          placeholder="Enter your phone number"
           aria-invalid={!!errors.phone}
           aria-describedby={errors.phone ? 'phone-error' : undefined}
           disabled={isSubmitting}
@@ -428,7 +445,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
             setValues({ ...values, location: e.target.value });
             if (errors.location) setErrors({ ...errors, location: undefined });
           }}
-          placeholder="e.g. City Name, Area / Sector"
+          placeholder="Enter your area or city"
           aria-invalid={!!errors.location}
           aria-describedby={errors.location ? 'location-error' : undefined}
           disabled={isSubmitting}
@@ -463,7 +480,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
             setValues({ ...values, message: e.target.value });
           }}
           disabled={isSubmitting}
-          placeholder="e.g. Need 3 core cutting holes for split AC installation on 2nd floor concrete wall."
+          placeholder="Enter job requirements (e.g. number of holes, floor, AC type)"
           className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-orange focus:bg-white focus:border-brand-orange transition-all disabled:opacity-60"
         />
       </div>

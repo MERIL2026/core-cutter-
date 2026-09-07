@@ -26,7 +26,15 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
       event_name: 'quote_start',
       metadata: { source: 'hero_floating_card', name, service },
     });
-    // Smooth scroll down to quote section or pass params
+    // Pre-fill the quote section with data entered in the hero form
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('quote_prefill', {
+          detail: { name, phone, serviceId: service },
+        })
+      );
+    }
+    // Smooth scroll down to quote section
     const quoteSection = document.getElementById('quote-section');
     if (quoteSection) {
       quoteSection.scrollIntoView({ behavior: 'smooth' });
@@ -139,8 +147,8 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
           </div>
 
           {/* Right Column: Floating Stat Counters + Request A Quote Card */}
-          <div className="lg:col-span-5 flex flex-col items-center lg:items-end space-y-4">
-            {/* Floating Top Stat Cards (like in reference image) */}
+          <div className="lg:col-span-5 flex flex-col items-center lg:items-end space-y-6">
+            {/* Floating Top Stat Cards */}
             <ScrollReveal animation="slide-right" delay={200} className="w-full max-w-md">
               <div className="grid grid-cols-2 gap-3 w-full">
                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 text-center hover:bg-white/15 transition-all">
@@ -154,58 +162,61 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
               </div>
             </ScrollReveal>
 
-            {/* Embedded Floating Quote Card (like the white card in template) */}
-            <ScrollReveal animation="zoom-in" delay={350} className="w-full max-w-md">
-              <div className="w-full bg-white text-gray-900 rounded-2xl p-6 sm:p-7 shadow-2xl border border-gray-100 hover:shadow-orange-glow/20 transition-all">
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
-                  <h3 className="text-lg font-black text-brand-dark">
-                    Request A Free Quote
-                  </h3>
-                  <span className="text-[11px] font-bold text-brand-orange uppercase tracking-wider bg-orange-50 px-2 py-0.5 rounded">
+            {/* Embedded Floating Quote Card (Spacious, airy modern design) */}
+            <ScrollReveal animation="zoom-in" delay={350} className="w-full max-w-md hidden lg:block">
+              <div className="w-full bg-white text-gray-900 rounded-3xl p-7 sm:p-8 shadow-2xl border border-gray-100/80 hover:shadow-orange-glow/15 transition-all">
+                <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
+                  <div>
+                    <h3 className="text-xl font-black text-brand-dark tracking-tight">
+                      Request A Free Quote
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5 font-medium">Quick estimate for diamond core drilling</p>
+                  </div>
+                  <span className="text-[11px] font-extrabold text-brand-orange uppercase tracking-wider bg-orange-50 border border-orange-200/60 px-2.5 py-1 rounded-full">
                     Fast Dispatch
                   </span>
                 </div>
 
-                <form onSubmit={handleHeroQuoteSubmit} className="space-y-3.5">
+                <form onSubmit={handleHeroQuoteSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="hero-name" className="block text-xs font-bold text-gray-700 mb-1">
-                      Your Name
+                    <label htmlFor="hero-name" className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      Your Name <span className="text-brand-orange">*</span>
                     </label>
                     <input
                       id="hero-name"
                       type="text"
                       required
-                      placeholder="e.g. Rahul Sharma"
+                      placeholder="Enter your name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-900 text-sm font-medium placeholder:text-slate-400 placeholder:font-normal focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange transition-all shadow-xs"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="hero-phone" className="block text-xs font-bold text-gray-700 mb-1">
-                      Phone Number
+                    <label htmlFor="hero-phone" className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      Phone Number <span className="text-brand-orange">*</span>
                     </label>
                     <input
                       id="hero-phone"
                       type="tel"
                       required
-                      placeholder="e.g. +91 98765 43210"
+                      placeholder="Enter your phone number"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-900 text-sm font-medium placeholder:text-slate-400 placeholder:font-normal focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange transition-all shadow-xs"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="hero-service" className="block text-xs font-bold text-gray-700 mb-1">
+                    <label htmlFor="hero-service" className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                       Service Required
                     </label>
                     <select
                       id="hero-service"
                       value={service}
                       onChange={(e) => setService(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-transparent transition-all bg-white"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/70 text-slate-900 text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange transition-all shadow-xs cursor-pointer"
                     >
                       <option value="ac-core-cutting">AC Core Cutting (2″ to 5″)</option>
                       <option value="rcc-core-cutting">RCC Beam &amp; Slab Coring</option>

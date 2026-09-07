@@ -42,9 +42,13 @@ export const ScrollObserverInit: React.FC = () => {
 
     observeElements();
 
-    // Re-observe if DOM changes dynamically
+    // Debounce re-observing so dynamic DOM changes don't thrash CPU/battery
+    let debounceTimer: NodeJS.Timeout | null = null;
     const mutationObserver = new MutationObserver(() => {
-      observeElements();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        observeElements();
+      }, 300);
     });
 
     mutationObserver.observe(document.body, {
@@ -53,6 +57,7 @@ export const ScrollObserverInit: React.FC = () => {
     });
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       observer.disconnect();
       mutationObserver.disconnect();
     };

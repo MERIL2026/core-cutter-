@@ -21,11 +21,11 @@ export const AreaChecker: React.FC = () => {
     const clean = query.trim();
     if (!clean) return;
 
-    // Positive confirmation for any valid local query/pincode
+    // Professional coverage check for local service region
     setResult({
       status: 'available',
-      message: `Active diamond core cutting technicians deployed in and around "${clean}".`,
-      eta: '45 – 90 Minutes (Same-Day On-Site Arrival)',
+      message: `We service locations across ${defaultBusinessProfile.city} including "${clean}". Contact our dispatch team to confirm the exact arrival slot for your job.`,
+      eta: 'Same-day slots typically available (subject to route schedule)',
     });
   };
 

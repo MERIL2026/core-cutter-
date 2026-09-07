@@ -25,7 +25,7 @@ const getSystemPrompt = (language: ChatLanguage) => {
     hi: 'आप हमेशा देवनागरी हिंदी लिपि में सटीक उत्तर दें। केवल औपचारिक अभिवादन के बजाय ग्राहक के प्रश्न का सीधा और व्यावहारिक उत्तर दें (जैसे स्प्लिट एसी 2.5″-3″ होल, RCC बीम में बिना क्रैक ड्रिलिंग, खर्च का आकलन, तुरंत बुकिंग)। भाषा विनम्र, सरल और स्पष्ट रखें।',
   }[language];
 
-  return `You are "Conoz Core AI", the senior technical assistant for "${defaultBusinessProfile.business_name}", a specialized contractor for diamond core cutting, RCC concrete drilling, and AC wall openings.
+  return `You are "${defaultBusinessProfile.business_name.split(' ')[0] || 'Core'} AI", the senior technical assistant for "${defaultBusinessProfile.business_name}", a specialized contractor for diamond core cutting, RCC concrete drilling, and AC wall openings.
 
 Business Profile:
 - Company: ${defaultBusinessProfile.business_name}
@@ -343,6 +343,34 @@ function getFallbackResponse(
   };
 }
 
+// Validate Gemini API key format (Google AI keys start with "AIza" and are ~39 chars)
+function isValidGeminiKey(key: string): boolean {
+  const trimmed = key.trim();
+  return trimmed.length >= 30 && /^AIza[a-zA-Z0-9_-]+$/.test(trimmed);
+}
+
+function buildActionChips(language: ChatLanguage): ChatActionChip[] {
+  const phone = defaultBusinessProfile.phone;
+  const whatsapp = (defaultBusinessProfile.whatsapp || defaultBusinessProfile.phone).replace(/\D/g, '');
+  return [
+    {
+      label: language === 'gu' ? '📞 કોલ કરો' : language === 'hi' ? '📞 कॉल करें' : '📞 Call Now',
+      type: 'call',
+      value: phone,
+    },
+    {
+      label: '💬 WhatsApp',
+      type: 'whatsapp',
+      value: whatsapp,
+    },
+    {
+      label: language === 'gu' ? '📝 ભાવ અંદાજ' : language === 'hi' ? '📝 फ्री कोट' : '📝 Get Quote',
+      type: 'link',
+      value: '#quote-section',
+    },
+  ];
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -358,64 +386,50 @@ export async function POST(req: NextRequest) {
     const { message, language, history } = parseResult.data;
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-    // If Gemini API Key is configured, attempt generation with fallback to domain engine
-    if (apiKey && apiKey.trim() !== '') {
-      const candidateModels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-pro'];
-      const genAI = new GoogleGenerativeAI(apiKey);
+    // Only attempt Gemini if a properly formatted API key is available
+    if (apiKey && isValidGeminiKey(apiKey)) {
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.0-flash',
+          systemInstruction: getSystemPrompt(language),
+        });
 
-      for (const modelName of candidateModels) {
-        try {
-          const model = genAI.getGenerativeModel({
-            model: modelName,
-            systemInstruction: getSystemPrompt(language),
+        const chat = model.startChat({
+          history: history && history.length > 0 ? history : undefined,
+          generationConfig: {
+            maxOutputTokens: 600,
+            temperature: 0.3,
+          },
+        });
+
+        // Race against an 8-second timeout to prevent hanging
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Gemini API timeout after 8s')), 8000)
+        );
+
+        const result = await Promise.race([
+          chat.sendMessage(message),
+          timeoutPromise,
+        ]);
+
+        const responseText = result.response.text();
+
+        if (responseText && responseText.trim().length > 0) {
+          return NextResponse.json({
+            reply: responseText,
+            language,
+            actionChips: buildActionChips(language),
           });
-
-          const chat = model.startChat({
-            history: history && history.length > 0 ? history : undefined,
-            generationConfig: {
-              maxOutputTokens: 600,
-              temperature: 0.3,
-            },
-          });
-
-          const result = await chat.sendMessage(message);
-          const responseText = result.response.text();
-
-          if (responseText && responseText.trim().length > 0) {
-            const phone = defaultBusinessProfile.phone;
-            const whatsapp = (defaultBusinessProfile.whatsapp || defaultBusinessProfile.phone).replace(/\D/g, '');
-
-            const actionChips: ChatActionChip[] = [
-              {
-                label: language === 'gu' ? '📞 કોલ કરો' : language === 'hi' ? '📞 कॉल करें' : '📞 Call Now',
-                type: 'call',
-                value: phone,
-              },
-              {
-                label: '💬 WhatsApp',
-                type: 'whatsapp',
-                value: whatsapp,
-              },
-              {
-                label: language === 'gu' ? '📝 ભાવ અંદાજ' : language === 'hi' ? '📝 फ्री कोट' : '📝 Get Quote',
-                type: 'link',
-                value: '#quote-section',
-              },
-            ];
-
-            return NextResponse.json({
-              reply: responseText,
-              language,
-              actionChips,
-            });
-          }
-        } catch (modelError: any) {
-          console.warn(`Attempt with ${modelName} failed, trying next:`, modelError?.message);
         }
+      } catch (aiError: any) {
+        console.warn('Gemini AI request failed, using domain fallback:', aiError?.message);
       }
+    } else if (apiKey && !isValidGeminiKey(apiKey)) {
+      console.warn('Chat API: GEMINI_API_KEY is set but has an invalid format. Expected key starting with "AIza". Using domain fallback.');
     }
 
-    // Advanced domain intelligence fallback
+    // Domain intelligence fallback (keyword-based responses)
     const fallback = getFallbackResponse(message, language);
     return NextResponse.json({
       reply: fallback.reply,

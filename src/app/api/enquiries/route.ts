@@ -112,60 +112,122 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. Resolve Service UUID from Database (if available)
-    let serviceUuid: string | null = null;
-    try {
-      const serviceLookup = await query<{ id: string }>(
-        'SELECT id FROM services WHERE slug = $1 LIMIT 1',
-        [serviceId]
-      );
-      if (serviceLookup.rows && serviceLookup.rows.length > 0 && serviceLookup.rows[0]) {
-        serviceUuid = serviceLookup.rows[0].id;
-      }
-    } catch {
-      // If services table is not populated, foreign key remains null
-      serviceUuid = null;
-    }
+    // 6. Attempt Database Storage with File-Based Fallback
+    let savedToDb = false;
 
-    // 7. Parameterized Database Insertion (Status is strictly forced to 'new')
-    const insertQuery = `
-      INSERT INTO enquiries (
+    try {
+      // Resolve Service UUID from Database (if available)
+      let serviceUuid: string | null = null;
+      try {
+        const serviceLookup = await query<{ id: string }>(
+          'SELECT id FROM services WHERE slug = $1 LIMIT 1',
+          [serviceId]
+        );
+        if (serviceLookup.rows && serviceLookup.rows.length > 0 && serviceLookup.rows[0]) {
+          serviceUuid = serviceLookup.rows[0].id;
+        }
+      } catch {
+        // If services table is not populated, foreign key remains null
+        serviceUuid = null;
+      }
+
+      // Parameterized Database Insertion (Status is strictly forced to 'new')
+      const insertQuery = `
+        INSERT INTO enquiries (
+          name,
+          phone,
+          whatsapp_preference,
+          service_id,
+          location,
+          message,
+          status,
+          source_page
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, 'new', $7)
+        RETURNING id, created_at;
+      `;
+
+      const insertParams = [
         name,
         phone,
-        whatsapp_preference,
-        service_id,
+        whatsappPreference,
+        serviceUuid,
         location,
-        message,
-        status,
-        source_page
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, 'new', $7)
-      RETURNING id, created_at;
-    `;
+        message ? message.trim() : null,
+        sourcePage ? sourcePage.trim() : null,
+      ];
 
-    const insertParams = [
-      name,
-      phone,
-      whatsappPreference,
-      serviceUuid,
-      location,
-      message ? message.trim() : null,
-      sourcePage ? sourcePage.trim() : null,
-    ];
+      await query(insertQuery, insertParams);
+      savedToDb = true;
+    } catch (dbError: unknown) {
+      // Database is unavailable — save to local file fallback so no data is lost
+      const dbErrMsg = dbError instanceof Error ? dbError.message : 'Unknown DB error';
+      console.warn('Database unavailable, saving enquiry to file fallback:', dbErrMsg);
 
-    await query(insertQuery, insertParams);
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const fallbackDir = path.join(process.cwd(), 'db');
+        const fallbackPath = path.join(fallbackDir, 'enquiries_fallback.json');
 
-    // 8. Truthful Success Response
+        // Ensure db directory exists
+        if (!fs.existsSync(fallbackDir)) {
+          fs.mkdirSync(fallbackDir, { recursive: true });
+        }
+
+        const fallbackEntry = {
+          name,
+          phone,
+          whatsappPreference,
+          serviceId,
+          location,
+          message: message ? message.trim() : null,
+          sourcePage: sourcePage ? sourcePage.trim() : null,
+          created_at: new Date().toISOString(),
+          status: 'new',
+          source: 'file_fallback',
+        };
+
+        let existingData: unknown[] = [];
+        if (fs.existsSync(fallbackPath)) {
+          try {
+            const raw = fs.readFileSync(fallbackPath, 'utf-8');
+            existingData = JSON.parse(raw);
+          } catch {
+            existingData = [];
+          }
+        }
+
+        existingData.push(fallbackEntry);
+        fs.writeFileSync(fallbackPath, JSON.stringify(existingData, null, 2), 'utf-8');
+        console.log('Enquiry saved to file fallback:', fallbackPath);
+      } catch (fileError: unknown) {
+        const fileErrMsg = fileError instanceof Error ? fileError.message : 'File write error';
+        console.error('File fallback also failed:', fileErrMsg);
+
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Unable to submit your quote request right now. Please call or WhatsApp our team directly.',
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // 7. Truthful Success Response
     return NextResponse.json(
       {
         success: true,
-        message: 'Your quote request has been received. Our team will contact you shortly.',
+        message: savedToDb
+          ? 'Your quote request has been received. Our team will contact you shortly.'
+          : 'Your quote request has been saved. Our team will contact you shortly.',
       },
       { status: 201 }
     );
   } catch (error: unknown) {
-    // 9. Safe Error Logging (No credentials, no stack traces leaked to client)
-    const errMessage = error instanceof Error ? error.message : 'Unknown database error';
+    // 8. Safe Error Logging (No credentials, no stack traces leaked to client)
+    const errMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Enquiry Submission Failure:', { error: errMessage });
 
     return NextResponse.json(

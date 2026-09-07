@@ -12,7 +12,7 @@ export const DesktopNav: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
-    <nav className="hidden lg:flex items-center space-x-1" aria-label="Desktop Main Navigation">
+    <nav className="hidden lg:flex items-center space-x-0.5 xl:space-x-1" aria-label="Desktop Main Navigation">
       {mainNavItems.map((item) => {
         const isActive =
           item.href === '/'
@@ -30,11 +30,11 @@ export const DesktopNav: React.FC = () => {
               <Link
                 href={item.href}
                 className={cn(
-                  'inline-flex items-center px-4 py-2 text-sm font-bold rounded-full transition-all duration-150',
+                  'inline-flex items-center px-2.5 py-1.5 xl:px-3.5 xl:py-2 text-[13px] xl:text-sm font-bold rounded-full transition-all duration-150 whitespace-nowrap',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange',
                   isActive
                     ? 'text-brand-orange font-extrabold bg-brand-orange-light'
-                    : 'text-gray-800 hover:text-brand-orange hover:bg-gray-100'
+                    : 'text-gray-700 hover:text-brand-orange hover:bg-gray-100/80'
                 )}
                 aria-expanded={dropdownOpen}
               >
@@ -59,7 +59,7 @@ export const DesktopNav: React.FC = () => {
                         key={child.href}
                         href={child.href}
                         className={cn(
-                          'block px-4 py-2.5 text-sm font-semibold transition-colors duration-150',
+                          'block px-4 py-2.5 text-sm font-semibold transition-colors duration-150 whitespace-nowrap',
                           pathname === child.href
                             ? 'bg-brand-orange-light text-brand-orange font-bold'
                             : 'text-gray-700 hover:bg-gray-50 hover:text-brand-orange'
@@ -81,11 +81,11 @@ export const DesktopNav: React.FC = () => {
             key={item.href}
             href={item.href}
             className={cn(
-              'px-4 py-2 text-sm font-bold rounded-full transition-all duration-150',
+              'px-2.5 py-1.5 xl:px-3.5 xl:py-2 text-[13px] xl:text-sm font-bold rounded-full transition-all duration-150 whitespace-nowrap',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange',
               isActive
                 ? 'text-brand-orange font-extrabold bg-brand-orange-light'
-                : 'text-gray-800 hover:text-brand-orange hover:bg-gray-100'
+                : 'text-gray-700 hover:text-brand-orange hover:bg-gray-100/80'
             )}
             aria-current={isActive ? 'page' : undefined}
           >

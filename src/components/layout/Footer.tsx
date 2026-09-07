@@ -24,18 +24,18 @@ export const Footer: React.FC<FooterProps> = ({
   const cleanWhatsApp = whatsapp ? whatsapp.replace(/\D/g, '') : '';
 
   return (
-    <footer className="w-full bg-[#12151B] text-white pt-16 pb-24 md:pb-12 border-t border-slate-800">
+    <footer className="w-full bg-[#12151B] text-white pt-16 pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-12 border-t border-slate-800">
       <Container>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-12 pb-14 border-b border-slate-800">
           {/* Brand Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
               <div className="h-10 w-10 rounded-xl bg-brand-orange flex items-center justify-center text-white font-black text-xl shadow-lg shadow-brand-orange/30">
-                C
+                {businessName ? businessName.charAt(0).toUpperCase() : 'C'}
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-black tracking-tight text-white uppercase">
-                  {businessName.split(' ')[0] || 'CONOZ'}<span className="text-brand-orange">.</span>
+                  {businessName.split(' ')[0] || 'CORE'}<span className="text-brand-orange">.</span>
                 </span>
                 <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                   Diamond Core Drilling

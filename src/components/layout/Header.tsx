@@ -22,8 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full transition-all">
-      {/* 1. Vibrant Top Announcement Bar (like in template) */}
-      <div className="bg-brand-orange text-white text-xs font-semibold py-2 px-4 border-b border-orange-600/30">
+      {/* 1. Vibrant Top Announcement Bar */}
+      <div className="bg-brand-orange text-white text-[11px] sm:text-xs font-semibold py-1.5 px-4 border-b border-orange-600/30">
         <Container>
           <div className="flex items-center justify-between">
             {/* Left: Contact Info */}
@@ -63,27 +63,28 @@ export const Header: React.FC<HeaderProps> = ({
         </Container>
       </div>
 
-      {/* 2. Main Navigation Bar */}
+      {/* 2. Main Navigation Bar (Spacious, elegant, uncluttered) */}
       <div className="bg-white/95 backdrop-blur-md border-b border-gray-200/80 shadow-xs">
         <Container>
-          <div className="flex h-18 sm:h-20 items-center justify-between">
+          <div className="flex h-18 sm:h-20 items-center justify-between gap-2 lg:gap-4">
             {/* Logo / Brand */}
             <Link
               href="/"
-              className="flex items-center space-x-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange rounded-sm"
+              className="flex items-center space-x-2.5 sm:space-x-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange rounded-sm shrink-0"
               aria-label="Homepage"
             >
-              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-brand-dark flex items-center justify-center text-brand-orange shadow-md group-hover:scale-105 transition-transform duration-200">
-                <ShieldCheck className="h-6 w-6 sm:h-7 sm:w-7 text-brand-orange" aria-hidden="true" />
+              <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-brand-dark flex items-center justify-center text-brand-orange shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0">
+                <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-brand-orange" aria-hidden="true" />
               </div>
               <div className="flex flex-col">
-                <div className="flex items-center space-x-1.5">
-                  <span className="text-lg sm:text-xl font-black text-brand-dark tracking-tight leading-none group-hover:text-brand-orange transition-colors">
-                    {businessName}
+                <div className="flex items-center space-x-1">
+                  <span className="text-base sm:text-lg font-black text-brand-dark tracking-tight leading-none group-hover:text-brand-orange transition-colors">
+                    {businessName.split(' ')[0] || 'CONOZ'}<span className="text-brand-orange">.</span>
+                    <span className="text-slate-800 font-extrabold text-sm sm:text-base ml-1 hidden sm:inline">Core Cutting</span>
                   </span>
                 </div>
-                <span className="text-[11px] sm:text-xs font-bold text-gray-500 tracking-wider uppercase mt-1">
-                  Diamond Core Drilling &amp; RCC Cutting
+                <span className="text-[10px] sm:text-[11px] font-bold text-gray-400 tracking-wider uppercase mt-0.5">
+                  Diamond Drilling Standard
                 </span>
               </div>
             </Link>
@@ -92,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
             <DesktopNav />
 
             {/* Header Action & Mobile Menu */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 shrink-0 ml-1 sm:ml-2 pl-1 sm:pl-2 lg:ml-3 lg:pl-3 lg:border-l lg:border-gray-200">
               <div className="hidden sm:block">
                 <ContactCTA type="quote" label="Get Free Quote" size="sm" variant="pill-orange" />
               </div>

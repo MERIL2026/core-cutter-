@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Send,
   X,
@@ -49,6 +49,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
   const [language, setLanguage] = useState<ChatLanguage>('en');
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: '1',
@@ -144,7 +145,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
 
     try {
       // Build conversation history for API
-      const history = messages.slice(-6).map((m) => ({
+      const history = messages.slice(-12).map((m) => ({
         role: m.sender === 'user' ? ('user' as const) : ('model' as const),
         parts: [{ text: m.text }],
       }));
@@ -164,6 +165,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       }
 
       const data = await res.json();
+      setIsOnline(true);
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'assistant',
@@ -175,6 +177,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
+      setIsOnline(false);
       const errorReplies = {
         en: "I'm having a little trouble connecting right now. Please call our technician directly at " + defaultBusinessProfile.phone,
         gu: "કનેક્શનમાં થોડી સમસ્યા આવી છે. કૃપા કરીને સીધા અમારા ટેકનિશિયનને કૉલ કરો: " + defaultBusinessProfile.phone,
@@ -218,11 +221,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
     }
   };
 
-  const handleVoiceTranscript = (transcript: string) => {
+  const handleSendMessageRef = useRef(handleSendMessage);
+  handleSendMessageRef.current = handleSendMessage;
+
+  const handleVoiceTranscript = useCallback((transcript: string) => {
     if (transcript.trim()) {
-      handleSendMessage(transcript);
+      handleSendMessageRef.current(transcript);
     }
-  };
+  }, []);
 
   const inputPlaceholder = {
     en: 'Ask a question or click the mic...',
@@ -231,7 +237,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
   }[language];
 
   return (
-    <div className="flex flex-col h-[560px] max-h-[85vh] w-full sm:w-[410px] bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden animate-fade-in-up transition-all z-50">
+    <div className="flex flex-col h-[min(560px,calc(100dvh-160px))] w-full sm:w-[410px] bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden animate-fade-in-up transition-all z-50">
       {/* Top Header */}
       <div className="bg-brand-dark text-white px-4 py-3.5 flex items-center justify-between border-b border-slate-800">
         <div className="flex items-center space-x-2.5">
@@ -239,17 +245,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
             <div className="h-9 w-9 rounded-xl bg-brand-orange text-white flex items-center justify-center font-black text-sm shadow-md">
               <Bot className="h-5 w-5" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-brand-dark" />
+            <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-brand-dark ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
           </div>
           <div>
             <div className="flex items-center space-x-1.5">
-              <span className="font-extrabold text-sm tracking-tight text-white">Conoz Core AI</span>
+              <span className="font-extrabold text-sm tracking-tight text-white">
+                {defaultBusinessProfile.business_name.split(' ')[0] || 'Core'} AI
+              </span>
               <span className="text-[10px] font-bold bg-brand-orange/30 text-brand-orange px-1.5 py-0.2 rounded uppercase">
-                Gemini Pro
+                AI Assistant
               </span>
             </div>
-            <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
-              Online • Voice &amp; Text
+            <span className={`text-[11px] font-medium flex items-center gap-1.5 ${isOnline ? 'text-emerald-400' : 'text-amber-400'}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              {isOnline ? 'Online • Voice & Text' : 'Quick Answers Mode'}
             </span>
           </div>
         </div>
@@ -318,7 +327,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       </div>
 
       {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto p-4 bg-slate-50/70 space-y-2">
+      <div className="flex-1 overflow-y-auto overscroll-contain p-4 bg-slate-50/70 space-y-2">
         {messages.map((message) => (
           <ChatMessageItem
             key={message.id}
@@ -346,18 +355,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
 
       {/* Starter Prompts Carousel (when conversation is short) */}
       {messages.length <= 3 && (
-        <div className="px-3 py-2 bg-white border-t border-gray-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          <Sparkles className="h-3.5 w-3.5 text-brand-orange shrink-0 ml-1" />
-          {starterPrompts[language].map((prompt, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleSendMessage(prompt)}
-              className="text-[11px] whitespace-nowrap bg-orange-50 hover:bg-brand-orange hover:text-white text-gray-700 border border-orange-200 px-2.5 py-1 rounded-full font-medium transition-colors shrink-0"
-            >
-              {prompt}
-            </button>
-          ))}
+        <div className="relative px-3 py-2 bg-white border-t border-gray-100">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pr-6">
+            <Sparkles className="h-3.5 w-3.5 text-brand-orange shrink-0 ml-1" />
+            {starterPrompts[language].map((prompt, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSendMessage(prompt)}
+                className="text-[11px] whitespace-nowrap bg-orange-50 hover:bg-brand-orange hover:text-white text-gray-700 border border-orange-200 px-2.5 py-1 rounded-full font-medium transition-colors shrink-0"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+          {/* Fade hint for horizontal scrollability */}
+          <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white to-transparent pointer-events-none" />
         </div>
       )}
 
