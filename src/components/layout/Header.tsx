@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="hidden sm:block">
                 <ContactCTA type="quote" label="Get Free Quote" size="sm" variant="pill-orange" />
               </div>
-              <MobileNav />
+              <MobileNav phone={phone} whatsapp={whatsapp} businessName={businessName} />
             </div>
           </div>
         </Container>

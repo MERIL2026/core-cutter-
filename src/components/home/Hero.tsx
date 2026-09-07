@@ -38,7 +38,7 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
   const cleanPhone = businessProfile.phone.replace(/[^\d+]/g, '');
 
   return (
-    <section className="relative bg-brand-dark text-white overflow-hidden py-14 sm:py-20 lg:py-24">
+    <section className="relative bg-brand-dark text-white overflow-hidden py-8 sm:py-16 lg:py-20">
       {/* Dark hero background image with subtle overlay */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -53,9 +53,9 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
       </div>
 
       <Container className="relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column: Bold Editorial Content */}
-          <div className="lg:col-span-7 space-y-6 sm:space-y-7 text-center lg:text-left">
+          <div className="lg:col-span-7 space-y-4 sm:space-y-6 text-center lg:text-left">
             {/* Eyebrow Tag */}
             <ScrollReveal animation="fade-down" delay={50}>
               <div className="inline-flex items-center space-x-2 text-brand-orange font-extrabold text-xs sm:text-sm tracking-wider uppercase">
@@ -66,7 +66,7 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
 
             {/* Dominant H1 Heading */}
             <ScrollReveal animation="slide-left" delay={150}>
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.12]">
+              <h1 className="text-2xl sm:text-4xl lg:text-6xl font-black tracking-tight text-white leading-tight sm:leading-[1.12]">
                 Precision Core Cutting &amp;{' '}
                 <span className="text-brand-orange">
                   Reliable Solutions
@@ -76,7 +76,7 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
 
             {/* Supporting Description */}
             <ScrollReveal animation="fade-up" delay={250}>
-              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
+              <p className="text-sm sm:text-lg text-gray-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
                 Clean 2 to 5 inch circular wall openings for split AC copper pipes, drain lines, and heavy RCC concrete slabs. Zero vibration wall damage, smooth edges, and fast on-site execution.
               </p>
             </ScrollReveal>
@@ -84,54 +84,56 @@ export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
             {/* Social Proof Pill (Avatar stack + Stat counter like in template) */}
             <ScrollReveal animation="fade-up" delay={350}>
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-1">
-                <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/15 hover:border-brand-orange/40 transition-colors">
+                <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-full border border-white/15 hover:border-brand-orange/40 transition-colors">
                   <div className="flex -space-x-2 overflow-hidden">
-                    <div className="inline-flex h-8 w-8 rounded-full ring-2 ring-brand-dark bg-brand-orange text-white text-xs font-bold items-center justify-center">
+                    <div className="inline-flex h-7 w-7 sm:h-8 sm:w-8 rounded-full ring-2 ring-brand-dark bg-brand-orange text-white text-xs font-bold items-center justify-center">
                       AC
                     </div>
-                    <div className="inline-flex h-8 w-8 rounded-full ring-2 ring-brand-dark bg-amber-500 text-white text-xs font-bold items-center justify-center">
+                    <div className="inline-flex h-7 w-7 sm:h-8 sm:w-8 rounded-full ring-2 ring-brand-dark bg-amber-500 text-white text-xs font-bold items-center justify-center">
                       RCC
                     </div>
-                    <div className="inline-flex h-8 w-8 rounded-full ring-2 ring-brand-dark bg-emerald-600 text-white text-xs font-bold items-center justify-center">
+                    <div className="inline-flex h-7 w-7 sm:h-8 sm:w-8 rounded-full ring-2 ring-brand-dark bg-emerald-600 text-white text-xs font-bold items-center justify-center">
                       ✓
                     </div>
                   </div>
                   <div className="text-left">
-                    <span className="block text-sm font-extrabold text-white leading-tight">2,500+</span>
-                    <span className="block text-[11px] text-gray-300 font-medium">Satisfied Jobs Executed</span>
+                    <span className="block text-xs sm:text-sm font-extrabold text-white leading-tight">2,500+</span>
+                    <span className="block text-[10px] sm:text-[11px] text-gray-300 font-medium">Satisfied Jobs Executed</span>
                   </div>
                 </div>
               </div>
             </ScrollReveal>
 
-            {/* Action Buttons Row (Orange Pill + Call Now + WhatsApp) */}
+            {/* Action Buttons Row */}
             <ScrollReveal animation="fade-up" delay={450}>
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-2.5 sm:gap-4 pt-2">
                 <ContactCTA
                   type="quote"
                   quoteHref="#quote-section"
-                  size="lg"
-                  label="Get Instant Quote"
+                  size="md"
+                  label="Get Free Instant Quote"
                   variant="pill-orange"
                   className="w-full sm:w-auto"
                 />
 
-                <ContactCTA
-                  type="call"
-                  phone={businessProfile.phone}
-                  size="lg"
-                  label={`Call: ${businessProfile.phone}`}
-                  variant="outline"
-                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10"
-                />
+                <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-3">
+                  <ContactCTA
+                    type="call"
+                    phone={businessProfile.phone}
+                    size="md"
+                    label="Call Tech"
+                    variant="outline"
+                    className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10"
+                  />
 
-                <ContactCTA
-                  type="whatsapp"
-                  whatsapp={businessProfile.whatsapp || businessProfile.phone}
-                  size="lg"
-                  label="WhatsApp"
-                  className="w-full sm:w-auto"
-                />
+                  <ContactCTA
+                    type="whatsapp"
+                    whatsapp={businessProfile.whatsapp || businessProfile.phone}
+                    size="md"
+                    label="WhatsApp"
+                    className="w-full sm:w-auto"
+                  />
+                </div>
               </div>
             </ScrollReveal>
           </div>

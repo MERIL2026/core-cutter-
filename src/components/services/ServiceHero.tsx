@@ -85,29 +85,31 @@ export const ServiceHero: React.FC<ServiceHeroProps> = ({ service, businessProfi
             </div>
 
             {/* Conversion CTA Group */}
-            <div className="flex flex-col sm:flex-row items-center gap-3.5 pt-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3.5 pt-2 sm:pt-3">
               <ContactCTA
                 type="quote"
                 quoteHref="#quote-section"
-                size="lg"
+                size="md"
                 label="Request Free Quote"
                 className="w-full sm:w-auto"
               />
-              <ContactCTA
-                type="call"
-                phone={businessProfile.phone}
-                size="lg"
-                label="Call Technician"
-                variant="outline"
-                className="w-full sm:w-auto border-slate-700 text-white hover:bg-white/10 hover:border-white"
-              />
-              <ContactCTA
-                type="whatsapp"
-                whatsapp={businessProfile.whatsapp || businessProfile.phone}
-                size="lg"
-                label="WhatsApp"
-                className="w-full sm:w-auto"
-              />
+              <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-3">
+                <ContactCTA
+                  type="call"
+                  phone={businessProfile.phone}
+                  size="md"
+                  label="Call Technician"
+                  variant="outline"
+                  className="w-full sm:w-auto border-slate-700 text-white hover:bg-white/10 hover:border-white"
+                />
+                <ContactCTA
+                  type="whatsapp"
+                  whatsapp={businessProfile.whatsapp || businessProfile.phone}
+                  size="md"
+                  label="WhatsApp"
+                  className="w-full sm:w-auto"
+                />
+              </div>
             </div>
           </div>
 
