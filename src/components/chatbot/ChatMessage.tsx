@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Volume2, VolumeX, Bot, User, Phone, MessageSquare, ExternalLink, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Volume2, VolumeX, Bot, User, Phone, MessageSquare, ArrowRight } from 'lucide-react';
 import { ChatMessage as ChatMessageType, ChatLanguage, ChatActionChip } from '@/types/chatbot';
 
 export interface ChatMessageProps {
@@ -9,6 +9,110 @@ export interface ChatMessageProps {
   currentLanguage: ChatLanguage;
   onChipClick?: (chip: ChatActionChip) => void;
 }
+
+/**
+ * Cleans text for Text-to-Speech playback so the browser's speech synthesis engine
+ * sounds natural and human, rather than reading out emojis (e.g. "waving hand sign"),
+ * markdown formatting, raw URLs, or phonetic acronym issues.
+ */
+export function cleanTextForSpeech(text: string, lang: ChatLanguage = 'en'): string {
+  if (!text) return '';
+
+  let cleaned = text;
+
+  // 1. Remove variation selectors and zero-width joiners
+  cleaned = cleaned.replace(/[\uFE00-\uFE0F\u200D]/g, '');
+
+  // 2. Remove emojis and pictographs completely (prevents "waving hand sign", "thumbs up", etc.)
+  try {
+    cleaned = cleaned.replace(/\p{Extended_Pictographic}/gu, '');
+  } catch {
+    // Fallback if environment doesn't support unicode property escapes
+  }
+  cleaned = cleaned.replace(
+    /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
+    ''
+  );
+
+  // 3. Remove markdown links: [Label](url) -> Label
+  cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+  // 4. Remove raw URLs
+  cleaned = cleaned.replace(/https?:\/\/\S+/g, '');
+
+  // 5. Remove markdown bold, italic, code blocks, headers, blockquotes
+  cleaned = cleaned.replace(/[*_~`#|>]/g, '');
+
+  // 6. Replace bullet points at the beginning of lines
+  cleaned = cleaned.replace(/^[\s*•\-–—]+\s*/gm, '');
+
+  // 7. Natural speech replacements for common symbols
+  cleaned = cleaned.replace(/\s*&\s*/g, ' and ');
+  cleaned = cleaned.replace(/\s*\/\s*/g, ' or ');
+  cleaned = cleaned.replace(/\s*@\s*/g, ' at ');
+  cleaned = cleaned.replace(/\+/g, ' plus ');
+
+  // 8. Domain & pronunciation enhancements for English
+  if (lang === 'en') {
+    cleaned = cleaned.replace(/\bRCC\b/g, 'R C C');
+    cleaned = cleaned.replace(/\bAC\b/g, 'A C');
+    cleaned = cleaned.replace(/\bmm\b/gi, 'millimeters');
+    cleaned = cleaned.replace(/\bcm\b/gi, 'centimeters');
+    cleaned = cleaned.replace(/\bft\b/gi, 'feet');
+    cleaned = cleaned.replace(/\binch(es)?\b/gi, 'inches');
+    cleaned = cleaned.replace(/\bapprox\.?\b/gi, 'approximately');
+    cleaned = cleaned.replace(/\be\.?g\.?\b/gi, 'for example');
+    cleaned = cleaned.replace(/\bi\.?e\.?\b/gi, 'that is');
+    cleaned = cleaned.replace(/\bhrs?\b/gi, 'hours');
+    cleaned = cleaned.replace(/\bmins?\b/gi, 'minutes');
+    cleaned = cleaned.replace(/\b24\/7\b/g, '24 by 7');
+  }
+
+  // 9. Clean up extra punctuation, repeated spaces, and newlines
+  cleaned = cleaned
+    .replace(/\s+/g, ' ')
+    .replace(/([.!?])\s*\1+/g, '$1')
+    .trim();
+
+  return cleaned;
+}
+
+const getPreferredVoice = (targetLocale: string): SpeechSynthesisVoice | null => {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    return null;
+  }
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) {
+    return null;
+  }
+
+  const normalizedTarget = targetLocale.toLowerCase().replace('_', '-');
+  const targetPrefix = normalizedTarget.split('-')[0];
+
+  // 1. Look for exact locale matches first (e.g. en-IN)
+  const exactMatches = voices.filter(
+    (v) => v.lang.toLowerCase().replace('_', '-') === normalizedTarget
+  );
+
+  // Filter for natural, online, or high-quality voices (e.g. Google / Microsoft Natural / Neural)
+  const naturalExact = exactMatches.find((v) =>
+    /natural|online|google|neural|enhanced|premium/i.test(v.name)
+  );
+  if (naturalExact) return naturalExact;
+  if (exactMatches.length > 0) return exactMatches[0];
+
+  // 2. Fallback to language prefix match (e.g. en, hi, gu)
+  const prefixMatches = voices.filter((v) =>
+    v.lang.toLowerCase().replace('_', '-').startsWith(targetPrefix)
+  );
+  const naturalPrefix = prefixMatches.find((v) =>
+    /natural|online|google|neural|enhanced|premium/i.test(v.name)
+  );
+  if (naturalPrefix) return naturalPrefix;
+  if (prefixMatches.length > 0) return prefixMatches[0];
+
+  return null;
+};
 
 export const ChatMessageItem: React.FC<ChatMessageProps> = ({
   message,
@@ -18,8 +122,31 @@ export const ChatMessageItem: React.FC<ChatMessageProps> = ({
   const isUser = message.sender === 'user';
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // Preload / cache browser voices
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      const onVoicesChanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+      window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
+      return () => {
+        window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+      };
+    }
+  }, []);
+
+  // Cleanup audio when component unmounts
+  useEffect(() => {
+    return () => {
+      if (isPlaying && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [isPlaying]);
+
   const handleSpeak = () => {
-    if (!('speechSynthesis' in window)) {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return;
     }
 
@@ -30,7 +157,6 @@ export const ChatMessageItem: React.FC<ChatMessageProps> = ({
     }
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(message.text);
 
     // Map language
     const lang = message.language || currentLanguage;
@@ -39,8 +165,23 @@ export const ChatMessageItem: React.FC<ChatMessageProps> = ({
       gu: 'gu-IN',
       hi: 'hi-IN',
     };
-    utterance.lang = localeMap[lang] || 'en-IN';
-    utterance.rate = 1.0;
+    const targetLocale = localeMap[lang] || 'en-IN';
+
+    // Clean text to avoid reading out emoji names like "waving hand sign"
+    const cleanedText = cleanTextForSpeech(message.text, lang);
+    if (!cleanedText) {
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(cleanedText);
+    utterance.lang = targetLocale;
+
+    const voice = getPreferredVoice(targetLocale);
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    utterance.rate = 0.95; // Slightly relaxed pacing for maximum clarity and warmth
     utterance.pitch = 1.0;
 
     utterance.onend = () => {
