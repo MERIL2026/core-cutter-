@@ -31,21 +31,21 @@ export const ServiceProcess: React.FC<ServiceProcessProps> = ({
           {process.map((step, index) => (
             <div
               key={index}
-              className="relative flex flex-col p-6 rounded-xl bg-brand-bg/50 border border-brand-border hover:border-brand-secondary-blue/40 transition-all group"
+              className="relative flex flex-col p-6 rounded-2xl bg-white border border-slate-200/90 shadow-card hover:border-brand-orange hover:shadow-lg transition-all duration-300 group hover:-translate-y-1"
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="h-8 w-8 rounded-lg bg-brand-navy text-white text-xs font-bold flex items-center justify-center">
+                <span className="h-9 w-9 rounded-xl bg-brand-orange text-white text-xs font-black flex items-center justify-center shadow-md shadow-brand-orange/20">
                   0{index + 1}
                 </span>
-                <span className="text-xs font-bold uppercase tracking-wider text-brand-secondary-blue">
-                  Step {index + 1}
+                <span className="text-xs font-black uppercase tracking-wider text-brand-orange">
+                  Step 0{index + 1}
                 </span>
               </div>
 
-              <h3 className="text-base font-bold text-brand-navy group-hover:text-brand-secondary-blue transition-colors">
+              <h3 className="text-base font-extrabold text-brand-dark group-hover:text-brand-orange transition-colors">
                 {step.title}
               </h3>
-              <p className="mt-2 text-xs sm:text-sm text-brand-muted leading-relaxed">
+              <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
                 {step.description}
               </p>
             </div>

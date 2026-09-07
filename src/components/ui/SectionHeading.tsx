@@ -30,17 +30,21 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
       )}
     >
       {eyebrow && (
-        <span
-          className={clsx(
-            'inline-block px-3 py-1 mb-3 text-xs font-bold uppercase tracking-wider rounded-full',
-            {
-              'bg-brand-light-blue text-brand-navy': !light,
-              'bg-white/10 text-brand-accent-blue': light,
-            }
-          )}
-        >
-          {eyebrow}
-        </span>
+        <div className="flex items-center gap-2 mb-3">
+          {align === 'center' && <span className="h-0.5 w-6 bg-brand-orange/60 inline-block"></span>}
+          <span
+            className={clsx(
+              'text-xs font-black uppercase tracking-wider',
+              {
+                'text-brand-orange': !light,
+                'text-brand-orange-light bg-brand-orange/20 px-3 py-1 rounded-full border border-brand-orange/30': light,
+              }
+            )}
+          >
+            {`// ${eyebrow.replace(/^\/\/\s*/, '')}`}
+          </span>
+          {align === 'center' && <span className="h-0.5 w-6 bg-brand-orange/60 inline-block"></span>}
+        </div>
       )}
       <h2
         className={clsx(

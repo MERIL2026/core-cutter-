@@ -42,7 +42,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     <div className="space-y-8">
       {/* Category Filter Tabs */}
       {showCategoryFilter && categories.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-2" role="tablist" aria-label="Gallery Categories">
+        <div className="flex flex-wrap items-center justify-center gap-2.5" role="tablist" aria-label="Gallery Categories">
           {allCategories.map((category) => (
             <button
               key={category}
@@ -51,11 +51,11 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
               aria-selected={selectedCategory === category}
               onClick={() => setSelectedCategory(category)}
               className={clsx(
-                'px-4 py-2 text-sm font-semibold rounded-full transition-all duration-150',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent-blue',
+                'px-5 py-2 text-xs sm:text-sm font-bold rounded-full transition-all duration-200',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange',
                 {
-                  'bg-brand-navy text-white shadow-xs': selectedCategory === category,
-                  'bg-white text-brand-text border border-brand-border hover:bg-brand-light-blue/40':
+                  'bg-brand-orange text-white shadow-md shadow-brand-orange/20 scale-105': selectedCategory === category,
+                  'bg-white text-brand-dark border border-slate-200 hover:border-brand-orange hover:text-brand-orange':
                     selectedCategory !== category,
                 }
               )}
@@ -71,33 +71,38 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         {filteredItems.map((item) => (
           <div
             key={item.id}
-            className="group relative bg-white rounded-xl border border-brand-border overflow-hidden shadow-xs hover:shadow-md transition-shadow duration-200"
+            className="group relative bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-card hover:shadow-xl hover:border-brand-orange/40 transition-all duration-300 hover:-translate-y-1"
           >
-            <div className="relative aspect-4/3 w-full bg-brand-light-blue/30 overflow-hidden">
+            <div className="relative aspect-4/3 w-full bg-slate-100 overflow-hidden">
               <Image
                 src={item.image_url}
                 alt={item.alt_text}
                 fill
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                className="object-cover group-hover:scale-108 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-4 text-white" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5 text-white">
+                <span className="text-xs font-bold uppercase tracking-wider text-brand-orange-light">
+                  {item.category}
+                </span>
+                <span className="text-sm font-extrabold text-white mt-0.5">{item.title}</span>
+              </div>
             </div>
 
-            <div className="p-4">
+            <div className="p-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-brand-secondary-blue bg-brand-light-blue px-2.5 py-0.5 rounded-md">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-brand-orange bg-orange-50 border border-brand-orange/20 px-3 py-1 rounded-full">
                   {item.category}
                 </span>
                 {item.location && (
-                  <span className="inline-flex items-center text-xs text-brand-muted">
-                    <MapPin className="h-3 w-3 mr-1" />
+                  <span className="inline-flex items-center text-xs font-medium text-slate-500">
+                    <MapPin className="h-3.5 w-3.5 mr-1 text-brand-orange" />
                     {item.location}
                   </span>
                 )}
               </div>
               {item.title && (
-                <h4 className="mt-2 text-base font-bold text-brand-navy group-hover:text-brand-secondary-blue transition-colors">
+                <h4 className="mt-3 text-base font-extrabold text-brand-dark group-hover:text-brand-orange transition-colors">
                   {item.title}
                 </h4>
               )}

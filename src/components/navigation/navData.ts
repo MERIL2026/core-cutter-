@@ -20,8 +20,17 @@ export const mainNavItems: NavItem[] = [
   },
   { label: 'About', href: '/about' },
   { label: 'Gallery', href: '/gallery' },
-  { label: 'Reviews', href: '/reviews' },
-  { label: 'FAQ', href: '/faq' },
-  { label: 'Service Areas', href: '/service-areas' },
   { label: 'Contact', href: '/contact' },
 ];
+
+export const footerQuickLinks: NavItem[] = [
+  { label: 'Home', href: '/' },
+  { label: 'About Us', href: '/about' },
+  { label: 'All Services', href: '/services' },
+  { label: 'Project Gallery', href: '/gallery' },
+  { label: 'Customer Reviews', href: '/reviews' },
+  { label: 'FAQ', href: '/faq' },
+  { label: 'Service Areas', href: '/service-areas' },
+  { label: 'Contact Us', href: '/contact' },
+];
+

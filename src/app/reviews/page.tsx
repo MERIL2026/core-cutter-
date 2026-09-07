@@ -55,27 +55,40 @@ export default function ReviewsPage() {
 
       <main className="flex-1">
         {/* 2. Hero */}
-        <section className="bg-gradient-to-b from-brand-navy via-brand-navy to-[#0A192F] text-white pt-6 pb-14 sm:pb-18 border-b border-slate-800">
-          <Container>
+        <section className="bg-brand-dark text-white pt-8 pb-16 sm:pb-20 border-b border-slate-800 relative overflow-hidden">
+          {/* Hero Background Image with Overlay */}
+          <div className="absolute inset-0 z-0">
+            <Image
+              src="/images/heroes/reviews-hero.png"
+              alt="Customer Reviews AC Core Cutting"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover opacity-25 mix-blend-luminosity filter brightness-75 scale-105 transform animate-fade-in-up"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-dark via-brand-dark/95 to-brand-dark/80" />
+          </div>
+          <div className="absolute inset-0 bg-radial-vignette pointer-events-none opacity-40 z-0" />
+          <Container className="relative z-10">
             <Breadcrumbs items={[{ label: 'Reviews' }]} className="text-slate-400 mb-6" />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               <div className="lg:col-span-7 space-y-6">
-                <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-secondary-blue/30 border border-brand-secondary-blue/40 text-brand-accent-blue text-xs font-semibold tracking-wide">
-                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Verified Client Feedback</span>
+                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-brand-orange/20 border border-brand-orange/30 text-brand-orange-light text-xs font-black uppercase tracking-wider">
+                  <ShieldCheck className="h-4 w-4 text-brand-orange" aria-hidden="true" />
+                  <span>{"// Verified Client Feedback"}</span>
                 </div>
 
                 {/* Exactly One H1 */}
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
                   Customer Reviews &amp; Testimonials
                 </h1>
 
-                <p className="text-base sm:text-lg text-slate-300 leading-relaxed">
+                <p className="text-base sm:text-lg text-slate-300 leading-relaxed font-normal">
                   Read direct feedback from homeowners, HVAC technicians, electrical contractors, and building developers who rely on our diamond core cutting services.
                 </p>
 
-                <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row items-center gap-3.5 pt-2">
                   <ContactCTA
                     type="quote"
                     quoteHref="#quote-section"
@@ -89,7 +102,7 @@ export default function ReviewsPage() {
                     size="md"
                     label="Call Technician"
                     variant="outline"
-                    className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 hover:border-white"
+                    className="w-full sm:w-auto border-slate-700 text-white hover:bg-white/10 hover:border-white"
                   />
                   <ContactCTA
                     type="whatsapp"
@@ -103,7 +116,7 @@ export default function ReviewsPage() {
 
               {/* Hero Image */}
               <div className="lg:col-span-5 flex justify-center lg:justify-end">
-                <div className="relative aspect-4/3 w-full rounded-2xl overflow-hidden border border-brand-accent-blue/30 shadow-2xl group">
+                <div className="relative aspect-4/3 w-full rounded-2xl overflow-hidden border-2 border-brand-orange/30 shadow-2xl shadow-brand-orange/10 group">
                   <Image
                     src="/images/ac-core-cutting.jpg"
                     alt="Precision AC wall hole diamond core drilling executed cleanly"
@@ -112,6 +125,9 @@ export default function ReviewsPage() {
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     priority
                   />
+                  <div className="absolute top-4 left-4 bg-brand-orange text-white text-xs font-black px-3.5 py-1.5 rounded-md uppercase tracking-wider shadow-md">
+                    100% Verified
+                  </div>
                 </div>
               </div>
             </div>

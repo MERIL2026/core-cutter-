@@ -6,12 +6,16 @@ import {
   Hero,
   TrustSection,
   ServicesOverview,
+  ChippingVsCoringSlider,
   ProcessSection,
+  AreaChecker,
+  PhotoEstimatorCard,
   RecentWorkSection,
   ReviewsSection,
   FAQPreview,
   FinalCTASection,
 } from '@/components/home';
+import { CostEstimator } from '@/components/calculator';
 import {
   getBusinessProfile,
   getActiveServices,
@@ -58,22 +62,40 @@ export default function HomePage() {
         {/* 4. Services Overview: 6 Canonical Service Categories */}
         <ServicesOverview services={services} />
 
-        {/* 5. How It Works: 5-Step Frictionless Workflow */}
+        {/* 5. Interactive Comparison: Hammer Chipping vs Diamond Coring */}
+        <ChippingVsCoringSlider />
+
+        {/* 6. Interactive Live Cost Estimator */}
+        <section className="py-16 md:py-20 bg-slate-950 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <CostEstimator />
+          </div>
+        </section>
+
+        {/* 7. How It Works: 5-Step Frictionless Workflow */}
         <ProcessSection />
 
-        {/* 6. Recent Work / Project Gallery Preview */}
+        {/* 8. WhatsApp Photo Feasibility & Area Dispatch Check */}
+        <section className="py-16 md:py-20 bg-brand-bg px-4 sm:px-6 lg:px-8 border-t border-gray-200">
+          <div className="max-w-7xl mx-auto space-y-10">
+            <PhotoEstimatorCard />
+            <AreaChecker />
+          </div>
+        </section>
+
+        {/* 9. Recent Work / Project Gallery Preview */}
         <RecentWorkSection
           galleryItems={galleryItems}
           categories={galleryCategories}
         />
 
-        {/* 7. Customer Reviews & Social Proof */}
+        {/* 10. Customer Reviews & Social Proof */}
         <ReviewsSection reviews={reviews} />
 
-        {/* 8. FAQ Preview: Clear Answers to Common Objections */}
+        {/* 11. FAQ Preview: Clear Answers to Common Objections */}
         <FAQPreview faqs={faqs} />
 
-        {/* 9. Final CTA & Quote Request Form */}
+        {/* 12. Final CTA & Quote Request Form */}
         <FinalCTASection
           businessProfile={businessProfile}
           services={services}

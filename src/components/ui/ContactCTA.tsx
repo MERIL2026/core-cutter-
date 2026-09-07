@@ -15,7 +15,7 @@ export interface ContactCTAProps {
   phone?: string;
   whatsapp?: string;
   quoteHref?: string;
-  variant?: 'primary' | 'secondary' | 'accent' | 'outline';
+  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'pill-orange' | 'pill-dark';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   className?: string;
@@ -33,12 +33,12 @@ export const ContactCTA: React.FC<ContactCTAProps> = ({
   className,
 }) => {
   const baseClasses =
-    'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 cursor-pointer min-h-[44px] min-w-[44px] touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent-blue focus-visible:ring-offset-2 active:scale-[0.98]';
+    'inline-flex items-center justify-center font-bold transition-all duration-200 cursor-pointer min-h-[44px] min-w-[44px] touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 active:scale-[0.98] rounded-full';
 
   const sizeClasses = {
-    sm: 'px-3.5 py-2 text-xs sm:text-sm gap-1.5',
-    md: 'px-5 py-2.5 text-sm sm:text-base gap-2',
-    lg: 'px-6 py-3.5 text-base sm:text-lg gap-2.5',
+    sm: 'px-4 py-2 text-xs sm:text-sm gap-1.5',
+    md: 'px-6 py-2.5 text-sm sm:text-base gap-2',
+    lg: 'px-7 py-3.5 text-base sm:text-lg gap-2.5',
   }[size];
 
   if (type === 'call') {
@@ -47,10 +47,12 @@ export const ContactCTA: React.FC<ContactCTAProps> = ({
     const href = cleanPhone ? `tel:${cleanPhone}` : '/contact';
 
     const variantClasses = {
-      primary: 'bg-brand-navy text-white hover:bg-[#09233B] shadow-sm hover:shadow',
-      secondary: 'bg-brand-secondary-blue text-white hover:bg-[#1C5172] shadow-sm hover:shadow',
-      accent: 'bg-brand-light-blue text-brand-navy hover:bg-[#CBE4F5]',
-      outline: 'border-2 border-brand-secondary-blue text-brand-secondary-blue bg-transparent hover:bg-brand-secondary-blue hover:text-white',
+      primary: 'bg-brand-orange text-white hover:bg-brand-orange-hover shadow-orange-glow',
+      secondary: 'bg-brand-dark text-white hover:bg-black shadow-md',
+      accent: 'bg-brand-orange-light text-brand-orange hover:bg-orange-100',
+      outline: 'border-2 border-white/30 text-white hover:bg-white/10 hover:border-white',
+      'pill-orange': 'bg-brand-orange text-white hover:bg-brand-orange-hover shadow-orange-glow',
+      'pill-dark': 'bg-brand-dark text-white hover:bg-black',
     }[variant || 'primary'];
 
     return (
@@ -65,7 +67,9 @@ export const ContactCTA: React.FC<ContactCTAProps> = ({
         }}
         className={cn(baseClasses, sizeClasses, variantClasses, fullWidth && 'w-full', className)}
       >
-        <Phone className="h-4 w-4 shrink-0 transition-transform group-hover:scale-110" aria-hidden="true" />
+        <div className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center -ml-1">
+          <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        </div>
         <span>{displayLabel}</span>
       </a>
     );
@@ -79,10 +83,12 @@ export const ContactCTA: React.FC<ContactCTAProps> = ({
       : '/contact';
 
     const variantClasses = {
-      primary: 'bg-[#128C7E] text-white hover:bg-[#075E54] shadow-sm hover:shadow',
-      secondary: 'bg-[#128C7E] text-white hover:bg-[#075E54] shadow-sm hover:shadow',
-      accent: 'bg-brand-light-blue text-[#075E54] hover:bg-[#CBE4F5]',
-      outline: 'border-2 border-[#128C7E] bg-transparent text-[#128C7E] hover:bg-[#128C7E] hover:text-white',
+      primary: 'bg-[#25D366] text-white hover:bg-[#1EBE5D] shadow-md',
+      secondary: 'bg-[#128C7E] text-white hover:bg-[#075E54] shadow-md',
+      accent: 'bg-emerald-50 text-[#075E54] hover:bg-emerald-100',
+      outline: 'border-2 border-[#25D366] bg-transparent text-[#25D366] hover:bg-[#25D366] hover:text-white',
+      'pill-orange': 'bg-brand-orange text-white hover:bg-brand-orange-hover',
+      'pill-dark': 'bg-brand-dark text-white hover:bg-black',
     }[variant || 'primary'];
 
     return (
@@ -108,10 +114,12 @@ export const ContactCTA: React.FC<ContactCTAProps> = ({
   // Quote CTA (Primary Conversion Action)
   const displayLabel = label || 'Get a Quote';
   const variantClasses = {
-    primary: 'bg-brand-secondary-blue text-white hover:bg-[#1C5172] shadow-sm hover:shadow-md',
-    secondary: 'bg-brand-navy text-white hover:bg-[#09233B] shadow-sm hover:shadow-md',
-    accent: 'bg-brand-light-blue text-brand-navy hover:bg-[#CBE4F5]',
-    outline: 'border-2 border-brand-secondary-blue text-brand-secondary-blue bg-transparent hover:bg-brand-secondary-blue hover:text-white',
+    primary: 'bg-brand-orange text-white hover:bg-brand-orange-hover shadow-orange-glow',
+    secondary: 'bg-brand-dark text-white hover:bg-black shadow-md',
+    accent: 'bg-brand-orange-light text-brand-orange hover:bg-orange-100',
+    outline: 'border-2 border-brand-orange text-brand-orange bg-transparent hover:bg-brand-orange hover:text-white',
+    'pill-orange': 'bg-brand-orange text-white hover:bg-brand-orange-hover shadow-orange-glow',
+    'pill-dark': 'bg-brand-dark text-white hover:bg-black',
   }[variant || 'primary'];
 
   return (

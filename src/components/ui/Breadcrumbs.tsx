@@ -23,7 +23,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, className }) =>
         <li>
           <Link
             href="/"
-            className="flex items-center text-brand-muted hover:text-brand-navy transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent-blue rounded-sm"
+            className="flex items-center text-slate-500 hover:text-brand-orange font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange rounded-sm"
             aria-label="Home"
           >
             <Home className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
@@ -36,10 +36,10 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, className }) =>
 
           return (
             <li key={index} className="flex items-center space-x-1.5 sm:space-x-2">
-              <ChevronRight className="h-3 w-3 text-slate-400 shrink-0" aria-hidden="true" />
+              <ChevronRight className="h-3 w-3 text-brand-orange/60 shrink-0" aria-hidden="true" />
               {isLast || !item.href ? (
                 <span
-                  className="font-semibold text-brand-navy truncate max-w-[200px] sm:max-w-none"
+                  className="font-bold text-brand-dark truncate max-w-[200px] sm:max-w-none"
                   aria-current="page"
                 >
                   {item.label}
@@ -47,7 +47,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, className }) =>
               ) : (
                 <Link
                   href={item.href}
-                  className="text-brand-muted hover:text-brand-navy transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent-blue rounded-sm"
+                  className="text-slate-500 hover:text-brand-orange font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange rounded-sm"
                 >
                   {item.label}
                 </Link>

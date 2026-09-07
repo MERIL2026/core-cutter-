@@ -3,6 +3,9 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import '../styles/globals.css';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { PageViewTracker } from '@/components/analytics/PageViewTracker';
+import { ScrollObserverInit } from '@/components/ui';
+import { ChatbotWidget } from '@/components/chatbot';
+import { MobileActionBar } from '@/components/layout/MobileActionBar';
 import { generateLocalBusinessSchema } from '@/lib/seo/structuredData';
 import { getBusinessProfile, getActiveServiceAreas } from '@/lib/content';
 
@@ -97,8 +100,11 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-brand-bg text-brand-text font-sans antialiased selection:bg-brand-light-blue selection:text-brand-navy">
+        <ScrollObserverInit />
         <PageViewTracker />
         {children}
+        <ChatbotWidget />
+        <MobileActionBar />
       </body>
     </html>
   );

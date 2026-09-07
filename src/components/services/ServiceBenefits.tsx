@@ -18,7 +18,7 @@ export const ServiceBenefits: React.FC<ServiceBenefitsProps> = ({
   }
 
   return (
-    <Section background="light" spacing="default" id="benefits">
+    <Section background="light" spacing="default" id="benefits" className="bg-[#F8F6F2]">
       <Container>
         <SectionHeading
           eyebrow="Key Advantages"
@@ -31,12 +31,12 @@ export const ServiceBenefits: React.FC<ServiceBenefitsProps> = ({
           {benefits.map((benefit, index) => (
             <div
               key={index}
-              className="flex items-start space-x-3.5 p-5 bg-white rounded-xl border border-brand-border shadow-xs hover:border-brand-secondary-blue/40 transition-colors"
+              className="flex items-start space-x-4 p-6 bg-white rounded-2xl border border-slate-200/90 shadow-card hover:border-brand-orange/40 transition-all duration-300 hover:-translate-y-0.5"
             >
-              <div className="h-7 w-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              <div className="h-8 w-8 rounded-full bg-orange-50 text-brand-orange border border-brand-orange/20 flex items-center justify-center shrink-0 mt-0.5">
+                <CheckCircle2 className="h-4.5 w-4.5" aria-hidden="true" />
               </div>
-              <span className="text-sm sm:text-base text-brand-navy font-semibold leading-snug">
+              <span className="text-sm sm:text-base text-brand-dark font-bold leading-snug">
                 {benefit}
               </span>
             </div>

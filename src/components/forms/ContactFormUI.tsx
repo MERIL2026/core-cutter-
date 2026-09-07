@@ -237,13 +237,18 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
       onSubmit={handleSubmit}
       noValidate
       className={clsx(
-        'bg-white rounded-xl border border-brand-border p-6 sm:p-8 shadow-xs space-y-5',
+        'bg-white rounded-2xl border border-slate-200/90 p-7 sm:p-9 shadow-xl space-y-5',
         className
       )}
     >
-      <h3 className="text-xl font-bold text-brand-navy border-b border-brand-border pb-3">
-        Request a Free Quote
-      </h3>
+      <div className="border-b border-slate-100 pb-4">
+        <span className="text-xs font-black uppercase tracking-wider text-brand-orange">
+          {"// INSTANT ESTIMATE"}
+        </span>
+        <h3 className="text-2xl font-black text-brand-dark tracking-tight mt-1">
+          Request A Free Quote
+        </h3>
+      </div>
 
       {/* Hidden Honeypot Field for anti-bot spam prevention */}
       <div className="hidden" aria-hidden="true">
@@ -262,7 +267,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
       {serverError && (
         <div
           className={clsx(
-            'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm p-4 rounded-lg border',
+            'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm p-4 rounded-xl border',
             isRateLimited
               ? 'text-amber-800 bg-amber-50 border-amber-200'
               : 'text-red-700 bg-red-50 border-red-200'
@@ -278,16 +283,16 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
             <a
               href="tel:919876543210"
-              className="inline-flex items-center space-x-1 text-xs font-bold text-brand-navy bg-white px-2.5 py-1.5 rounded border border-brand-border shadow-2xs hover:bg-slate-50"
+              className="inline-flex items-center space-x-1 text-xs font-bold text-brand-dark bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-xs hover:border-brand-orange"
             >
-              <Phone className="h-3.5 w-3.5 text-brand-secondary-blue" />
+              <Phone className="h-3.5 w-3.5 text-brand-orange" />
               <span>Call Direct</span>
             </a>
             <a
               href="https://wa.me/919876543210"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center space-x-1 text-xs font-bold text-emerald-700 bg-white px-2.5 py-1.5 rounded border border-emerald-200 shadow-2xs hover:bg-emerald-50"
+              className="inline-flex items-center space-x-1 text-xs font-bold text-emerald-700 bg-white px-3 py-1.5 rounded-full border border-emerald-200 shadow-xs hover:bg-emerald-50"
             >
               <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
               <span>WhatsApp</span>
@@ -298,8 +303,8 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
 
       {/* Name */}
       <div>
-        <label htmlFor="name" className="block text-sm font-semibold text-brand-navy mb-1">
-          Your Name <span className="text-red-500">*</span>
+        <label htmlFor="name" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5">
+          Your Name <span className="text-brand-orange">*</span>
         </label>
         <input
           id="name"
@@ -316,11 +321,11 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           aria-describedby={errors.name ? 'name-error' : undefined}
           disabled={isSubmitting}
           className={clsx(
-            'w-full px-4 py-2.5 text-sm rounded-md border bg-brand-bg/50 transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-brand-accent-blue focus:bg-white disabled:opacity-60',
+            'w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/70 transition-all font-medium',
+            'focus:outline-none focus:ring-2 focus:ring-brand-orange focus:bg-white focus:border-brand-orange disabled:opacity-60',
             {
               'border-red-400 bg-red-50/50': errors.name,
-              'border-brand-border': !errors.name,
+              'border-slate-200': !errors.name,
             }
           )}
         />
@@ -333,8 +338,8 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
 
       {/* Phone */}
       <div>
-        <label htmlFor="phone" className="block text-sm font-semibold text-brand-navy mb-1">
-          Phone Number <span className="text-red-500">*</span>
+        <label htmlFor="phone" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5">
+          Phone Number <span className="text-brand-orange">*</span>
         </label>
         <input
           id="phone"
@@ -351,11 +356,11 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           aria-describedby={errors.phone ? 'phone-error' : undefined}
           disabled={isSubmitting}
           className={clsx(
-            'w-full px-4 py-2.5 text-sm rounded-md border bg-brand-bg/50 transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-brand-accent-blue focus:bg-white disabled:opacity-60',
+            'w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/70 transition-all font-medium',
+            'focus:outline-none focus:ring-2 focus:ring-brand-orange focus:bg-white focus:border-brand-orange disabled:opacity-60',
             {
               'border-red-400 bg-red-50/50': errors.phone,
-              'border-brand-border': !errors.phone,
+              'border-slate-200': !errors.phone,
             }
           )}
         />
@@ -367,7 +372,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
       </div>
 
       {/* WhatsApp Preference */}
-      <div className="flex items-center space-x-2 pt-1">
+      <div className="flex items-center space-x-2 pt-0.5">
         <input
           id="whatsappPreference"
           type="checkbox"
@@ -377,17 +382,17 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
             setValues({ ...values, whatsappPreference: e.target.checked });
           }}
           disabled={isSubmitting}
-          className="h-4 w-4 rounded border-brand-border text-brand-navy focus:ring-brand-accent-blue disabled:opacity-60"
+          className="h-4 w-4 rounded border-slate-300 text-brand-orange focus:ring-brand-orange disabled:opacity-60 accent-[#FA4A14]"
         />
-        <label htmlFor="whatsappPreference" className="text-sm font-medium text-brand-text select-none">
+        <label htmlFor="whatsappPreference" className="text-xs sm:text-sm font-semibold text-slate-700 select-none">
           I prefer updates on WhatsApp
         </label>
       </div>
 
       {/* Service Selection */}
       <div>
-        <label htmlFor="serviceId" className="block text-sm font-semibold text-brand-navy mb-1">
-          Service Required <span className="text-red-500">*</span>
+        <label htmlFor="serviceId" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5">
+          Service Required <span className="text-brand-orange">*</span>
         </label>
         <select
           id="serviceId"
@@ -398,7 +403,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
             setValues({ ...values, serviceId: e.target.value });
           }}
           disabled={isSubmitting}
-          className="w-full px-4 py-2.5 text-sm rounded-md border border-brand-border bg-white text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-accent-blue disabled:opacity-60"
+          className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 bg-slate-50/70 text-brand-dark font-medium focus:outline-none focus:ring-2 focus:ring-brand-orange focus:bg-white focus:border-brand-orange disabled:opacity-60"
         >
           {services.map((s) => (
             <option key={s.id} value={s.id}>
@@ -410,8 +415,8 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
 
       {/* Location */}
       <div>
-        <label htmlFor="location" className="block text-sm font-semibold text-brand-navy mb-1">
-          Area / Location <span className="text-red-500">*</span>
+        <label htmlFor="location" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5">
+          Area / Location <span className="text-brand-orange">*</span>
         </label>
         <input
           id="location"
@@ -428,11 +433,11 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           aria-describedby={errors.location ? 'location-error' : undefined}
           disabled={isSubmitting}
           className={clsx(
-            'w-full px-4 py-2.5 text-sm rounded-md border bg-brand-bg/50 transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-brand-accent-blue focus:bg-white disabled:opacity-60',
+            'w-full px-4 py-3 text-sm rounded-xl border bg-slate-50/70 transition-all font-medium',
+            'focus:outline-none focus:ring-2 focus:ring-brand-orange focus:bg-white focus:border-brand-orange disabled:opacity-60',
             {
               'border-red-400 bg-red-50/50': errors.location,
-              'border-brand-border': !errors.location,
+              'border-slate-200': !errors.location,
             }
           )}
         />
@@ -445,8 +450,8 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
 
       {/* Message */}
       <div>
-        <label htmlFor="message" className="block text-sm font-semibold text-brand-navy mb-1">
-          Job Details / Requirements <span className="text-xs text-brand-muted font-normal">(Optional)</span>
+        <label htmlFor="message" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5">
+          Job Details / Requirements <span className="text-xs text-slate-400 font-normal lowercase">(optional)</span>
         </label>
         <textarea
           id="message"
@@ -459,7 +464,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           }}
           disabled={isSubmitting}
           placeholder="e.g. Need 3 core cutting holes for split AC installation on 2nd floor concrete wall."
-          className="w-full px-4 py-2.5 text-sm rounded-md border border-brand-border bg-brand-bg/50 focus:outline-none focus:ring-2 focus:ring-brand-accent-blue focus:bg-white transition-colors disabled:opacity-60"
+          className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-orange focus:bg-white focus:border-brand-orange transition-all disabled:opacity-60"
         />
       </div>
 
@@ -471,7 +476,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
         isLoading={isSubmitting}
         disabled={isSubmitting}
         rightIcon={<Send className="h-4 w-4" aria-hidden="true" />}
-        className="w-full"
+        className="w-full py-4 text-base font-black shadow-lg shadow-brand-orange/30 hover:shadow-brand-orange/50"
       >
         Submit Quote Request
       </Button>

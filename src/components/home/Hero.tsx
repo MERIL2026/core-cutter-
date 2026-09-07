@@ -1,122 +1,232 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Container } from '../layout/Container';
 import { ContactCTA } from '../ui/ContactCTA';
+import { ScrollReveal } from '../ui/ScrollReveal';
 import { BusinessProfile } from '@/types';
-import { ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Phone, ArrowRight, ShieldCheck, CheckCircle2, Users } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 
 export interface HeroProps {
   businessProfile: BusinessProfile;
 }
 
 export const Hero: React.FC<HeroProps> = ({ businessProfile }) => {
-  return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-brand-navy via-[#0C2A47] to-[#081B2E] text-white pt-10 pb-16 sm:pt-14 sm:pb-20 lg:pt-16 lg:pb-24 border-b border-brand-accent-blue/15">
-      {/* Precision Blueprint Grid Layer */}
-      <div
-        className="absolute inset-0 bg-technical-grid opacity-20 pointer-events-none"
-        aria-hidden="true"
-      />
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [service, setService] = useState('ac-core-cutting');
 
-      {/* Ambient Accent Glows */}
-      <div
-        className="absolute -top-24 -left-24 w-96 h-96 bg-brand-accent-blue/10 rounded-full blur-3xl pointer-events-none"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute top-1/2 right-0 w-80 h-80 bg-brand-secondary-blue/15 rounded-full blur-3xl pointer-events-none"
-        aria-hidden="true"
-      />
+  const handleHeroQuoteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    trackEvent({
+      event_name: 'quote_start',
+      metadata: { source: 'hero_floating_card', name, service },
+    });
+    // Smooth scroll down to quote section or pass params
+    const quoteSection = document.getElementById('quote-section');
+    if (quoteSection) {
+      quoteSection.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      router.push('/contact');
+    }
+  };
+
+  const cleanPhone = businessProfile.phone.replace(/[^\d+]/g, '');
+
+  return (
+    <section className="relative bg-brand-dark text-white overflow-hidden py-14 sm:py-20 lg:py-24">
+      {/* Dark hero background image with subtle overlay */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/images/home-hero.jpg"
+          alt="Precision Diamond Core Drilling"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-25 mix-blend-luminosity filter brightness-75 scale-105 transform animate-fade-in-up"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-dark via-brand-dark/95 to-brand-dark/80" />
+      </div>
 
       <Container className="relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          {/* Main Hero Copy & CTAs */}
-          <div className="lg:col-span-7 space-y-6 sm:space-y-8 text-center lg:text-left">
-            {/* Editorial Eyebrow Tag */}
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-accent-blue/15 border border-brand-accent-blue/30 text-brand-accent-blue text-xs sm:text-sm font-semibold tracking-wide animate-fade-in-up">
-              <ShieldCheck className="h-4 w-4 text-brand-accent-blue" aria-hidden="true" />
-              <span>Diamond Rotary Concrete Drilling</span>
-            </div>
-
-            {/* Dominant Editorial H1 */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-extrabold tracking-tight text-white leading-[1.12] animate-fade-in-up animation-delay-100">
-              Precision Core Cutting for{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-accent-blue via-[#76BBE0] to-white">
-                AC &amp; RCC Concrete
-              </span>{' '}
-              Work
-            </h1>
-
-            {/* Balanced Supporting Description */}
-            <p className="text-base sm:text-lg text-slate-200/90 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal animate-fade-in-up animation-delay-200">
-              Clean 2 to 5 inch circular wall openings for split AC copper pipes, drain lines, and RCC slabs. Zero vibration damage, smooth circular cuts, and minimal mess for residential and commercial sites.
-            </p>
-
-            {/* Core Capability Badges */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 pt-1 text-xs sm:text-sm text-slate-200 animate-fade-in-up animation-delay-200">
-              <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-xs">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" aria-hidden="true" />
-                <span>2″ to 5″ Diameters</span>
+          {/* Left Column: Bold Editorial Content */}
+          <div className="lg:col-span-7 space-y-6 sm:space-y-7 text-center lg:text-left">
+            {/* Eyebrow Tag */}
+            <ScrollReveal animation="fade-down" delay={50}>
+              <div className="inline-flex items-center space-x-2 text-brand-orange font-extrabold text-xs sm:text-sm tracking-wider uppercase">
+                <span className="text-brand-orange font-black text-base">{"//"}</span>
+                <span>SPECIALIZED DIAMOND CORE DRILLING</span>
               </div>
-              <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-xs">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" aria-hidden="true" />
-                <span>Zero Wall Cracks</span>
-              </div>
-              <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-xs">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" aria-hidden="true" />
-                <span>RCC Rebar Capable</span>
-              </div>
-            </div>
+            </ScrollReveal>
 
-            {/* Primary Conversion CTA Group */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2 animate-fade-in-up animation-delay-300">
-              <ContactCTA
-                type="quote"
-                quoteHref="#quote-section"
-                size="lg"
-                label="Get Instant Quote"
-                className="w-full sm:w-auto shadow-lg shadow-brand-navy/50"
-              />
-              <ContactCTA
-                type="call"
-                phone={businessProfile.phone}
-                size="lg"
-                label="Call Technician"
-                variant="outline"
-                className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 hover:border-white"
-              />
-              <ContactCTA
-                type="whatsapp"
-                whatsapp={businessProfile.whatsapp || businessProfile.phone}
-                size="lg"
-                label="WhatsApp"
-                className="w-full sm:w-auto"
-              />
-            </div>
-          </div>
+            {/* Dominant H1 Heading */}
+            <ScrollReveal animation="slide-left" delay={150}>
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.12]">
+                Precision Core Cutting &amp;{' '}
+                <span className="text-brand-orange">
+                  Reliable Solutions
+                </span>
+              </h1>
+            </ScrollReveal>
 
-          {/* Hero Visual Area: High-Impact Action Photo */}
-          <div className="lg:col-span-5 flex justify-center lg:justify-end animate-fade-in-up animation-delay-300">
-            <div className="relative aspect-4/3 w-full max-w-[500px] rounded-2xl overflow-hidden border border-brand-accent-blue/30 shadow-2xl group">
-              <Image
-                src="/images/home-hero.jpg"
-                alt="Precision diamond core drilling in concrete wall with rotary core drill rig"
-                fill
-                sizes="(max-width: 1024px) 100vw, 40vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/80 via-transparent to-transparent flex items-end p-4">
-                <div className="text-xs text-slate-200 font-medium flex items-center space-x-2">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>On-Site Precision Rotary Diamond Coring</span>
+            {/* Supporting Description */}
+            <ScrollReveal animation="fade-up" delay={250}>
+              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
+                Clean 2 to 5 inch circular wall openings for split AC copper pipes, drain lines, and heavy RCC concrete slabs. Zero vibration wall damage, smooth edges, and fast on-site execution.
+              </p>
+            </ScrollReveal>
+
+            {/* Social Proof Pill (Avatar stack + Stat counter like in template) */}
+            <ScrollReveal animation="fade-up" delay={350}>
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-1">
+                <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/15 hover:border-brand-orange/40 transition-colors">
+                  <div className="flex -space-x-2 overflow-hidden">
+                    <div className="inline-flex h-8 w-8 rounded-full ring-2 ring-brand-dark bg-brand-orange text-white text-xs font-bold items-center justify-center">
+                      AC
+                    </div>
+                    <div className="inline-flex h-8 w-8 rounded-full ring-2 ring-brand-dark bg-amber-500 text-white text-xs font-bold items-center justify-center">
+                      RCC
+                    </div>
+                    <div className="inline-flex h-8 w-8 rounded-full ring-2 ring-brand-dark bg-emerald-600 text-white text-xs font-bold items-center justify-center">
+                      ✓
+                    </div>
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-sm font-extrabold text-white leading-tight">2,500+</span>
+                    <span className="block text-[11px] text-gray-300 font-medium">Satisfied Jobs Executed</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </ScrollReveal>
+
+            {/* Action Buttons Row (Orange Pill + Call Now + WhatsApp) */}
+            <ScrollReveal animation="fade-up" delay={450}>
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
+                <ContactCTA
+                  type="quote"
+                  quoteHref="#quote-section"
+                  size="lg"
+                  label="Get Instant Quote"
+                  variant="pill-orange"
+                  className="w-full sm:w-auto"
+                />
+
+                <ContactCTA
+                  type="call"
+                  phone={businessProfile.phone}
+                  size="lg"
+                  label={`Call: ${businessProfile.phone}`}
+                  variant="outline"
+                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10"
+                />
+
+                <ContactCTA
+                  type="whatsapp"
+                  whatsapp={businessProfile.whatsapp || businessProfile.phone}
+                  size="lg"
+                  label="WhatsApp"
+                  className="w-full sm:w-auto"
+                />
+              </div>
+            </ScrollReveal>
+          </div>
+
+          {/* Right Column: Floating Stat Counters + Request A Quote Card */}
+          <div className="lg:col-span-5 flex flex-col items-center lg:items-end space-y-4">
+            {/* Floating Top Stat Cards (like in reference image) */}
+            <ScrollReveal animation="slide-right" delay={200} className="w-full max-w-md">
+              <div className="grid grid-cols-2 gap-3 w-full">
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 text-center hover:bg-white/15 transition-all">
+                  <span className="block text-2xl sm:text-3xl font-black text-brand-orange">10+</span>
+                  <span className="block text-xs font-semibold text-gray-300 mt-0.5">Years Experience</span>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 text-center hover:bg-white/15 transition-all">
+                  <span className="block text-2xl sm:text-3xl font-black text-brand-orange">100%</span>
+                  <span className="block text-xs font-semibold text-gray-300 mt-0.5">Vibration Safe</span>
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* Embedded Floating Quote Card (like the white card in template) */}
+            <ScrollReveal animation="zoom-in" delay={350} className="w-full max-w-md">
+              <div className="w-full bg-white text-gray-900 rounded-2xl p-6 sm:p-7 shadow-2xl border border-gray-100 hover:shadow-orange-glow/20 transition-all">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+                  <h3 className="text-lg font-black text-brand-dark">
+                    Request A Free Quote
+                  </h3>
+                  <span className="text-[11px] font-bold text-brand-orange uppercase tracking-wider bg-orange-50 px-2 py-0.5 rounded">
+                    Fast Dispatch
+                  </span>
+                </div>
+
+                <form onSubmit={handleHeroQuoteSubmit} className="space-y-3.5">
+                  <div>
+                    <label htmlFor="hero-name" className="block text-xs font-bold text-gray-700 mb-1">
+                      Your Name
+                    </label>
+                    <input
+                      id="hero-name"
+                      type="text"
+                      required
+                      placeholder="e.g. Rahul Sharma"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-transparent transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="hero-phone" className="block text-xs font-bold text-gray-700 mb-1">
+                      Phone Number
+                    </label>
+                    <input
+                      id="hero-phone"
+                      type="tel"
+                      required
+                      placeholder="e.g. +91 98765 43210"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-transparent transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="hero-service" className="block text-xs font-bold text-gray-700 mb-1">
+                      Service Required
+                    </label>
+                    <select
+                      id="hero-service"
+                      value={service}
+                      onChange={(e) => setService(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-transparent transition-all bg-white"
+                    >
+                      <option value="ac-core-cutting">AC Core Cutting (2″ to 5″)</option>
+                      <option value="rcc-core-cutting">RCC Beam &amp; Slab Coring</option>
+                      <option value="ac-drain-hole">AC Drain Hole Drilling</option>
+                      <option value="concrete-wall-drilling">Concrete Wall Penetration</option>
+                      <option value="pipe-cable-passage">Pipe &amp; Cable Passage</option>
+                      <option value="other">Other Custom Drilling</option>
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full mt-2 inline-flex items-center justify-center space-x-2 py-3.5 px-6 rounded-full bg-brand-orange hover:bg-brand-orange-hover text-white font-bold text-sm shadow-orange-glow transition-all active:scale-95"
+                  >
+                    <span>Submit Quote Request</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </form>
+              </div>
+            </ScrollReveal>
           </div>
         </div>
       </Container>
     </section>
   );
 };
-

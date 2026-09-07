@@ -39,10 +39,10 @@ export const FAQAccordion: React.FC<FAQAccordionProps> = ({
           <div
             key={item.id}
             className={cn(
-              'rounded-xl border transition-all duration-200 overflow-hidden',
+              'rounded-2xl border transition-all duration-300 overflow-hidden',
               isOpen
-                ? 'bg-white border-brand-accent-blue/60 shadow-md ring-1 ring-brand-accent-blue/20'
-                : 'bg-white border-brand-border hover:border-slate-300 shadow-xs'
+                ? 'bg-white border-brand-orange shadow-lg shadow-brand-orange/10 ring-1 ring-brand-orange/20'
+                : 'bg-white border-slate-200/90 hover:border-brand-orange/40 shadow-xs'
             )}
           >
             <h3>
@@ -53,23 +53,28 @@ export const FAQAccordion: React.FC<FAQAccordionProps> = ({
                 aria-controls={contentId}
                 onClick={() => toggleItem(item.id)}
                 className={cn(
-                  'w-full flex items-center justify-between p-5 text-left font-bold text-base sm:text-lg transition-colors cursor-pointer',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent-blue focus-visible:ring-inset',
+                  'w-full flex items-center justify-between p-5 sm:p-6 text-left font-extrabold text-base sm:text-lg transition-colors cursor-pointer',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-inset',
                   isOpen
-                    ? 'text-brand-navy bg-slate-50/50'
-                    : 'text-brand-text hover:text-brand-navy'
+                    ? 'text-brand-orange bg-orange-50/40'
+                    : 'text-brand-dark hover:text-brand-orange'
                 )}
               >
-                <div className="flex items-center space-x-3 pr-4">
-                  <span className="h-6 w-6 rounded-md bg-brand-light-blue/60 text-brand-secondary-blue flex items-center justify-center text-xs font-bold shrink-0">
+                <div className="flex items-center space-x-3.5 pr-4">
+                  <span className={cn(
+                    'h-7 w-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 transition-colors',
+                    isOpen
+                      ? 'bg-brand-orange text-white'
+                      : 'bg-orange-50 text-brand-orange border border-brand-orange/20'
+                  )}>
                     Q
                   </span>
                   <span>{item.question}</span>
                 </div>
                 <ChevronDown
                   className={cn(
-                    'h-5 w-5 shrink-0 text-brand-secondary-blue transition-transform duration-300 ease-out',
-                    isOpen && 'rotate-180 text-brand-navy'
+                    'h-5 w-5 shrink-0 text-brand-orange transition-transform duration-300 ease-out',
+                    isOpen && 'rotate-180 text-brand-orange'
                   )}
                   aria-hidden="true"
                 />
@@ -81,9 +86,9 @@ export const FAQAccordion: React.FC<FAQAccordionProps> = ({
                 id={contentId}
                 role="region"
                 aria-labelledby={triggerId}
-                className="p-5 pt-3 text-sm sm:text-base text-brand-muted leading-relaxed border-t border-slate-100 bg-white"
+                className="p-6 pt-3 text-sm sm:text-base text-slate-600 leading-relaxed border-t border-slate-100 bg-white"
               >
-                <div className="pl-9">{item.answer}</div>
+                <div className="pl-10.5">{item.answer}</div>
               </div>
             )}
           </div>

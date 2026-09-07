@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 export interface SectionProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
   className?: string;
-  background?: 'default' | 'white' | 'light' | 'navy';
+  background?: 'default' | 'white' | 'light' | 'navy' | 'dark';
   spacing?: 'default' | 'compact' | 'spacious';
   id?: string;
 }
@@ -27,6 +27,7 @@ export const Section: React.FC<SectionProps> = ({
           'bg-white text-brand-text': background === 'white',
           'bg-brand-light-blue text-brand-navy': background === 'light',
           'bg-brand-navy text-white': background === 'navy',
+          'bg-brand-dark text-white': background === 'dark',
         },
         {
           'py-14 sm:py-16 md:py-24 lg:py-28': spacing === 'default',
