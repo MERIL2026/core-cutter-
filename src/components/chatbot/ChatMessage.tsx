@@ -52,23 +52,40 @@ export function cleanTextForSpeech(text: string, lang: ChatLanguage = 'en'): str
   cleaned = cleaned.replace(/\s*@\s*/g, ' at ');
   cleaned = cleaned.replace(/\+/g, ' plus ');
 
-  // 8. Domain & pronunciation enhancements for English
+  // 8. Soften abrupt exclamation greetings so there is a natural conversational pause instead of a dead stop
+  cleaned = cleaned.replace(/\b(Hello|Hi|Hey|Greetings)!\s*/gi, '$1, ');
+
+  // 9. Domain & phonetic pronunciation enhancements
   if (lang === 'en') {
+    // CRITICAL: Prevent TTS from pronouncing AI as "eye" or "the I"
+    cleaned = cleaned.replace(/\bAI\b/g, 'A I');
     cleaned = cleaned.replace(/\bRCC\b/g, 'R C C');
     cleaned = cleaned.replace(/\bAC\b/g, 'A C');
+    cleaned = cleaned.replace(/\bCTA\b/g, 'C T A');
+    cleaned = cleaned.replace(/\bFAQ\b/g, 'F A Q');
     cleaned = cleaned.replace(/\bmm\b/gi, 'millimeters');
     cleaned = cleaned.replace(/\bcm\b/gi, 'centimeters');
     cleaned = cleaned.replace(/\bft\b/gi, 'feet');
     cleaned = cleaned.replace(/\binch(es)?\b/gi, 'inches');
+    cleaned = cleaned.replace(/\bdia\.?\b/gi, 'diameter');
+    cleaned = cleaned.replace(/\bsq\.?\s*ft\.?\b/gi, 'square feet');
     cleaned = cleaned.replace(/\bapprox\.?\b/gi, 'approximately');
     cleaned = cleaned.replace(/\be\.?g\.?\b/gi, 'for example');
     cleaned = cleaned.replace(/\bi\.?e\.?\b/gi, 'that is');
     cleaned = cleaned.replace(/\bhrs?\b/gi, 'hours');
     cleaned = cleaned.replace(/\bmins?\b/gi, 'minutes');
     cleaned = cleaned.replace(/\b24\/7\b/g, '24 by 7');
+  } else if (lang === 'hi') {
+    cleaned = cleaned.replace(/\bAI\b/g, 'ए आई');
+    cleaned = cleaned.replace(/\bAC\b/g, 'ए सी');
+    cleaned = cleaned.replace(/\bRCC\b/g, 'आर सी सी');
+  } else if (lang === 'gu') {
+    cleaned = cleaned.replace(/\bAI\b/g, 'એ આઈ');
+    cleaned = cleaned.replace(/\bAC\b/g, 'એ સી');
+    cleaned = cleaned.replace(/\bRCC\b/g, 'આર સી સી');
   }
 
-  // 9. Clean up extra punctuation, repeated spaces, and newlines
+  // 10. Clean up extra punctuation, repeated spaces, and newlines
   cleaned = cleaned
     .replace(/\s+/g, ' ')
     .replace(/([.!?])\s*\1+/g, '$1')
@@ -77,6 +94,11 @@ export function cleanTextForSpeech(text: string, lang: ChatLanguage = 'en'): str
   return cleaned;
 }
 
+/**
+ * Intelligently selects the highest quality voice available in the browser.
+ * Prioritizes natural/neural/online voices and pleasant assistant voices (e.g. Zira, Neerja, Google),
+ * while heavily penalizing harsh, robotic legacy system voices (e.g. Mark, David).
+ */
 const getPreferredVoice = (targetLocale: string): SpeechSynthesisVoice | null => {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
     return null;
@@ -89,29 +111,65 @@ const getPreferredVoice = (targetLocale: string): SpeechSynthesisVoice | null =>
   const normalizedTarget = targetLocale.toLowerCase().replace('_', '-');
   const targetPrefix = normalizedTarget.split('-')[0];
 
-  // 1. Look for exact locale matches first (e.g. en-IN)
-  const exactMatches = voices.filter(
-    (v) => v.lang.toLowerCase().replace('_', '-') === normalizedTarget
-  );
+  const scoreVoice = (v: SpeechSynthesisVoice): number => {
+    const vLang = v.lang.toLowerCase().replace('_', '-');
+    const vName = v.name.toLowerCase();
+    let score = 0;
 
-  // Filter for natural, online, or high-quality voices (e.g. Google / Microsoft Natural / Neural)
-  const naturalExact = exactMatches.find((v) =>
-    /natural|online|google|neural|enhanced|premium/i.test(v.name)
-  );
-  if (naturalExact) return naturalExact;
-  if (exactMatches.length > 0) return exactMatches[0];
+    // Language matching
+    if (vLang === normalizedTarget) {
+      score += 100;
+    } else if (vLang.startsWith(targetPrefix)) {
+      score += 60;
+    } else if (targetPrefix === 'gu' && vLang.startsWith('hi')) {
+      // Gujarati falls back to Hindi much better than English phonetics
+      score += 40;
+    } else if (targetPrefix === 'en' && vLang.startsWith('en')) {
+      score += 40;
+    } else {
+      return -1; // Incompatible language
+    }
 
-  // 2. Fallback to language prefix match (e.g. en, hi, gu)
-  const prefixMatches = voices.filter((v) =>
-    v.lang.toLowerCase().replace('_', '-').startsWith(targetPrefix)
-  );
-  const naturalPrefix = prefixMatches.find((v) =>
-    /natural|online|google|neural|enhanced|premium/i.test(v.name)
-  );
-  if (naturalPrefix) return naturalPrefix;
-  if (prefixMatches.length > 0) return prefixMatches[0];
+    // Natural / Neural / Online cloud-quality voices
+    if (vName.includes('natural') || vName.includes('neural') || vName.includes('online')) {
+      score += 60;
+    }
+    if (vName.includes('google')) {
+      score += 45;
+    }
+    if (vName.includes('enhanced') || vName.includes('premium')) {
+      score += 35;
+    }
 
-  return null;
+    // Modern, clear, and pleasant assistant voices
+    if (
+      vName.includes('zira') ||
+      vName.includes('neerja') ||
+      vName.includes('aria') ||
+      vName.includes('jenny') ||
+      vName.includes('swara') ||
+      vName.includes('samantha') ||
+      vName.includes('karen') ||
+      vName.includes('serena') ||
+      vName.includes('female')
+    ) {
+      score += 30;
+    }
+
+    // Strongly penalize robotic legacy desktop voices that sound like 1995 SAPI
+    if (vName.includes('mark') || vName.includes('david')) {
+      score -= 30;
+    }
+
+    return score;
+  };
+
+  const scored = voices
+    .map((v) => ({ voice: v, score: scoreVoice(v) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return scored.length > 0 ? scored[0].voice : null;
 };
 
 export const ChatMessageItem: React.FC<ChatMessageProps> = ({
