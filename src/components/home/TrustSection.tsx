@@ -86,7 +86,7 @@ export const TrustSection: React.FC = () => {
             <div className="relative mx-auto max-w-[500px]">
               {/* Main Primary Image */}
               <ScrollReveal animation="slide-right" delay={250}>
-                <div className="relative aspect-4/3 rounded-3xl overflow-hidden shadow-2xl border-4 border-white hover:scale-[1.02] transition-transform duration-500">
+                <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border-4 border-white hover:scale-[1.02] transition-transform duration-500">
                   <Image
                     src="/images/custom-core-drilling.jpg"
                     alt="Diamond Core Drilling Contractor on Site"

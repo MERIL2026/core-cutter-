@@ -111,7 +111,7 @@ export default function GalleryPage() {
 
               {/* Hero Image */}
               <div className="lg:col-span-5 flex justify-center lg:justify-end">
-                <div className="relative aspect-4/3 w-full rounded-2xl overflow-hidden border-2 border-brand-orange/30 shadow-2xl shadow-brand-orange/10 group">
+                <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden border-2 border-brand-orange/30 shadow-2xl shadow-brand-orange/10 group">
                   <Image
                     src="/images/concrete-wall-drilling.jpg"
                     alt="Clean concrete core extraction on job site"

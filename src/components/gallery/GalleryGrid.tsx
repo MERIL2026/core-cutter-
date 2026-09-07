@@ -73,7 +73,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
             key={item.id}
             className="group relative bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-card hover:shadow-xl hover:border-brand-orange/40 transition-all duration-300 hover:-translate-y-1"
           >
-            <div className="relative aspect-4/3 w-full bg-slate-100 overflow-hidden">
+            <div className="relative aspect-[4/3] w-full bg-slate-100 overflow-hidden">
               <Image
                 src={item.image_url}
                 alt={item.alt_text}

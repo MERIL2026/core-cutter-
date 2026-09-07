@@ -114,7 +114,7 @@ export const ServiceHero: React.FC<ServiceHeroProps> = ({ service, businessProfi
           {/* Visual Media Slot */}
           {service.image_url ? (
             <div className="lg:col-span-5 flex justify-center lg:justify-end">
-              <div className="relative aspect-4/3 w-full rounded-2xl overflow-hidden border-2 border-brand-orange/30 shadow-2xl shadow-brand-orange/10 group">
+              <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden border-2 border-brand-orange/30 shadow-2xl shadow-brand-orange/10 group">
                 <Image
                   src={service.image_url}
                   alt={`${service.name} project execution`}

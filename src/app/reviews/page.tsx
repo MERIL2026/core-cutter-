@@ -116,7 +116,7 @@ export default function ReviewsPage() {
 
               {/* Hero Image */}
               <div className="lg:col-span-5 flex justify-center lg:justify-end">
-                <div className="relative aspect-4/3 w-full rounded-2xl overflow-hidden border-2 border-brand-orange/30 shadow-2xl shadow-brand-orange/10 group">
+                <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden border-2 border-brand-orange/30 shadow-2xl shadow-brand-orange/10 group">
                   <Image
                     src="/images/ac-core-cutting.jpg"
                     alt="Precision AC wall hole diamond core drilling executed cleanly"

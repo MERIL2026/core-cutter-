@@ -69,7 +69,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
       {/* Bottom Photo with Floating Circular Orange Action Button */}
       <div className="relative mt-6 pt-2">
-        <div className="relative aspect-4/3 w-full rounded-2xl overflow-hidden bg-gray-100">
+        <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-gray-100">
           {image_url ? (
             <Image
               src={image_url}

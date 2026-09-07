@@ -35,7 +35,10 @@ const config: Config = {
       boxShadow: {
         'orange-glow': '0 10px 25px -5px rgba(250, 74, 20, 0.35)',
         'card-elevated': '0 10px 30px rgba(0, 0, 0, 0.06)',
-      }
+      },
+      aspectRatio: {
+        '4/3': '4 / 3',
+      },
     },
   },
   plugins: [],
