@@ -1353,10 +1353,13 @@ export default function AdminDashboardPage() {
 
             {/* QR Code Container */}
             <div className="bg-white p-4 rounded-2xl inline-block shadow-inner">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={upiQrImageUrl}
                 alt="UPI Payment QR Code"
                 className="w-48 h-48 mx-auto"
+                width={192}
+                height={192}
               />
             </div>
 
@@ -1480,6 +1483,7 @@ export default function AdminDashboardPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
                   {photoEnquiry.site_photos.map((src, i) => (
                     <div key={i} className="relative rounded-xl overflow-hidden border border-slate-700 bg-black">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={src} alt="Site Photo" className="w-full h-24 object-cover" />
                     </div>
                   ))}

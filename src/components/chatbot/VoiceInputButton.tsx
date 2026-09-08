@@ -74,6 +74,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     return () => {
       stopAllVoice();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startListening = async () => {
