@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { query, ensureEnquiriesTable } from './db';
+import { getSupabaseClient } from './supabase';
 
 export interface EnquiryRecord {
   id: string;
@@ -73,7 +74,7 @@ function readFallbackFile(): EnquiryRecord[] {
       return parsed;
     }
     return memoryEnquiries;
-  } catch (err) {
+  } catch {
     return memoryEnquiries;
   }
 }
@@ -114,15 +115,15 @@ export async function saveEnquiry(data: {
   sourcePage?: string;
   source?: string;
   status?: 'new' | 'spam';
-}): Promise<{ success: boolean; id: string; storage: 'db' | 'fallback' }> {
-  const fallbackId = `enq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+}): Promise<{ success: boolean; id: string; storage: 'supabase' | 'db' | 'fallback' }> {
+  const recordId = `enq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const nowIso = new Date().toISOString();
   const formattedServiceName =
     SERVICE_NAME_MAP[data.serviceId] ||
     data.serviceId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   const newRecord: EnquiryRecord = {
-    id: fallbackId,
+    id: recordId,
     name: data.name,
     phone: data.phone,
     whatsapp_preference: data.whatsappPreference,
@@ -138,7 +139,7 @@ export async function saveEnquiry(data: {
     source: data.source || 'web_form',
   };
 
-  // Always persist immediately to local fallback file so data is NEVER lost
+  // Always write to local fallback so data is never lost
   try {
     const records = readFallbackFile();
     records.unshift(newRecord);
@@ -147,33 +148,55 @@ export async function saveEnquiry(data: {
     console.error('Fallback write error:', err);
   }
 
-  // Attempt Postgres DB storage in background if available
+  // 1. Try Supabase JS client
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const { data: inserted, error } = await supabase
+        .from('enquiries')
+        .insert({
+          id: recordId,
+          name: data.name,
+          phone: data.phone,
+          whatsapp_preference: data.whatsappPreference,
+          service_id: data.serviceId,
+          service_name: formattedServiceName,
+          location: data.location,
+          message: data.message ? data.message.trim() : null,
+          status: data.status || 'new',
+          source: data.source || 'web_form',
+          source_page: data.sourcePage ? data.sourcePage.trim() : null,
+          created_at: nowIso,
+          updated_at: nowIso,
+        })
+        .select('id')
+        .single();
+
+      if (!error && inserted?.id) {
+        return { success: true, id: inserted.id, storage: 'supabase' };
+      }
+      if (error) {
+        console.warn('Supabase insert warning:', error.message);
+      }
+    } catch (err) {
+      console.warn('Supabase SDK write error:', err);
+    }
+  }
+
+  // 2. Try direct Postgres Pool
   try {
     await ensureEnquiriesTable();
-
     const insertQuery = `
       INSERT INTO enquiries (
-        id,
-        name,
-        phone,
-        whatsapp_preference,
-        service_id,
-        service_name,
-        location,
-        message,
-        status,
-        source,
-        source_page,
-        created_at,
-        updated_at
+        id, name, phone, whatsapp_preference, service_id, service_name,
+        location, message, status, source, source_page, created_at, updated_at
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
       ON CONFLICT (id) DO UPDATE SET updated_at = NOW()
-      RETURNING id, created_at;
+      RETURNING id;
     `;
-
     const res = await query<{ id: string }>(insertQuery, [
-      fallbackId,
+      recordId,
       data.name,
       data.phone,
       data.whatsappPreference,
@@ -185,55 +208,68 @@ export async function saveEnquiry(data: {
       data.source || 'web_form',
       data.sourcePage ? data.sourcePage.trim() : null,
     ]);
-
     if (res.rows?.[0]?.id) {
       return { success: true, id: res.rows[0].id, storage: 'db' };
     }
   } catch {
-    // DB offline/optional
+    // Postgres pool optional
   }
 
-  return { success: true, id: fallbackId, storage: 'fallback' };
+  return { success: true, id: recordId, storage: 'fallback' };
 }
 
 export async function getAllEnquiries(options: {
   status?: string | null;
   search?: string | null;
 }): Promise<{ enquiries: EnquiryRecord[]; stats: EnquiryStats }> {
-  let dbEnquiries: EnquiryRecord[] = [];
+  let primaryEnquiries: EnquiryRecord[] = [];
+  let fetchedFromCloud = false;
 
-  try {
-    await ensureEnquiriesTable();
-    const sql = `
-      SELECT 
-        e.id,
-        e.name,
-        e.phone,
-        e.whatsapp_preference,
-        e.service_id,
-        COALESCE(e.service_name, e.service_id) as service_name,
-        e.location,
-        e.message,
-        e.status,
-        e.source,
-        e.source_page,
-        e.created_at,
-        e.updated_at
-      FROM enquiries e
-      ORDER BY e.created_at DESC LIMIT 200;
-    `;
-    const res = await query<EnquiryRecord>(sql);
-    dbEnquiries = res.rows || [];
-  } catch (err) {
-    // Expected when Postgres is not running or not configured
+  // 1. Try Supabase SDK
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('enquiries')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(300);
+
+      if (!error && data) {
+        primaryEnquiries = data as EnquiryRecord[];
+        fetchedFromCloud = true;
+      }
+    } catch (err) {
+      console.warn('Supabase SDK read error:', err);
+    }
+  }
+
+  // 2. Try Postgres Pool if Supabase SDK wasn't used or failed
+  if (!fetchedFromCloud) {
+    try {
+      await ensureEnquiriesTable();
+      const sql = `
+        SELECT 
+          e.id, e.name, e.phone, e.whatsapp_preference, e.service_id,
+          COALESCE(e.service_name, e.service_id) as service_name,
+          e.location, e.message, e.status, e.source, e.source_page,
+          e.created_at, e.updated_at
+        FROM enquiries e
+        ORDER BY e.created_at DESC LIMIT 200;
+      `;
+      const res = await query<EnquiryRecord>(sql);
+      if (res.rows) {
+        primaryEnquiries = res.rows;
+      }
+    } catch {
+      // Postgres pool offline
+    }
   }
 
   const fallbackRecords = readFallbackFile();
-
-  // Merge DB and fallback records, deduplicating by ID
   const combinedMap = new Map<string, EnquiryRecord>();
 
-  // Add fallback records first
+  // Add fallback records
   for (const r of fallbackRecords) {
     const recordId = r.id || `fb_${Math.random().toString(36).substring(2, 8)}`;
     combinedMap.set(recordId, {
@@ -246,8 +282,8 @@ export async function getAllEnquiries(options: {
     });
   }
 
-  // Add DB records (will overwrite or add)
-  for (const r of dbEnquiries) {
+  // Add cloud/DB records (overwrite or add)
+  for (const r of primaryEnquiries) {
     combinedMap.set(r.id, {
       ...r,
       service_name: r.service_name || SERVICE_NAME_MAP[r.service_id || ''] || 'AC Core Cutting',
@@ -261,7 +297,7 @@ export async function getAllEnquiries(options: {
     return timeB - timeA;
   });
 
-  // Compute total stats over all records
+  // Compute total stats
   const now = Date.now();
   const last24h = 24 * 60 * 60 * 1000;
 
@@ -278,12 +314,12 @@ export async function getAllEnquiries(options: {
     }).length,
   };
 
-  // Filter by status if specified
+  // Filter by status
   if (options.status && options.status !== 'all') {
     allList = allList.filter((r) => r.status === options.status);
   }
 
-  // Filter by search query if specified
+  // Filter by search query
   if (options.search && options.search.trim()) {
     const q = options.search.trim().toLowerCase();
     allList = allList.filter(
@@ -303,16 +339,31 @@ export async function updateEnquiryStatus(
   id: string,
   status: 'new' | 'contacted' | 'quoted' | 'closed' | 'spam'
 ): Promise<boolean> {
-  let updatedInDb = false;
+  let updatedInCloud = false;
 
-  try {
-    await query(
-      `UPDATE enquiries SET status = $1, updated_at = NOW() WHERE id = $2;`,
-      [status, id]
-    );
-    updatedInDb = true;
-  } catch {
-    // DB might be offline, proceed to fallback file
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const { error } = await supabase
+        .from('enquiries')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (!error) updatedInCloud = true;
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!updatedInCloud) {
+    try {
+      await query(
+        `UPDATE enquiries SET status = $1, updated_at = NOW() WHERE id = $2;`,
+        [status, id]
+      );
+      updatedInCloud = true;
+    } catch {
+      // ignore
+    }
   }
 
   // Update in fallback file
@@ -330,17 +381,29 @@ export async function updateEnquiryStatus(
     writeFallbackFile(fallbackRecords);
   }
 
-  return updatedInDb || updatedInFile;
+  return updatedInCloud || updatedInFile;
 }
 
 export async function deleteEnquiry(id: string): Promise<boolean> {
-  let deletedFromDb = false;
+  let deletedFromCloud = false;
 
-  try {
-    await query(`DELETE FROM enquiries WHERE id = $1;`, [id]);
-    deletedFromDb = true;
-  } catch {
-    // DB might be offline
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const { error } = await supabase.from('enquiries').delete().eq('id', id);
+      if (!error) deletedFromCloud = true;
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!deletedFromCloud) {
+    try {
+      await query(`DELETE FROM enquiries WHERE id = $1;`, [id]);
+      deletedFromCloud = true;
+    } catch {
+      // ignore
+    }
   }
 
   const fallbackRecords = readFallbackFile();
@@ -352,5 +415,5 @@ export async function deleteEnquiry(id: string): Promise<boolean> {
     return true;
   }
 
-  return deletedFromDb;
+  return deletedFromCloud;
 }
