@@ -129,11 +129,6 @@ export default function AdminDashboardPage() {
     discountAmount: 0,
   });
 
-  // 3. WhatsApp Quick Templates Modal
-  const [isWaModalOpen, setIsWaModalOpen] = useState(false);
-  const [waEnquiry, setWaEnquiry] = useState<Enquiry | null>(null);
-  const [waLanguage, setWaLanguage] = useState<'gu' | 'hi' | 'en'>('gu');
-  const [customWaMessage, setCustomWaMessage] = useState('');
 
   // 4. Job Scheduling & Technician Modal
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -460,49 +455,106 @@ export default function AdminDashboardPage() {
     printWindow.document.close();
   };
 
-  // WhatsApp Quick Reply Modal
+  // 3. WhatsApp Quick Templates Modal
+  const [isWaModalOpen, setIsWaModalOpen] = useState(false);
+  const [waEnquiry, setWaEnquiry] = useState<Enquiry | null>(null);
+  const [waLanguage, setWaLanguage] = useState<'gu' | 'hi' | 'en'>('gu');
+  const [selectedWaTemplate, setSelectedWaTemplate] = useState<string>('quote');
+  const [customWaMessage, setCustomWaMessage] = useState('');
+
+  const WA_TEMPLATES = [
+    { id: 'quote', title: '📋 Initial Quotation & Pricing', desc: 'Price estimate breakdown with zero-vibration guarantee' },
+    { id: 'schedule', title: '📅 Site Visit Confirmation', desc: 'Date, time slot, assigned technician & power/water notice' },
+    { id: 'ontheway', title: '🚗 Technician On The Way', desc: 'Live dispatch notification that cutting team has left' },
+    { id: 'prep', title: '⚡ Site Preparation Checklist', desc: '230V power plug, water tap & space clearing guide' },
+    { id: 'payment', title: '💳 Bill & UPI QR Payment Link', desc: 'Instant UPI pay link with exact amount & screenshot request' },
+    { id: 'review', title: '⭐ Google 5-Star Review Request', desc: 'Polite review invite with direct Google Maps link' },
+    { id: 'followup', title: '🔄 10% Discount Follow-Up', desc: 'Re-engagement offer with free dust collection' },
+  ];
+
+  const getTemplateContent = (templateId: string, lang: 'gu' | 'hi' | 'en', target: Enquiry): string => {
+    const name = target.name || 'Customer';
+    const sName = target.service_name || 'AC Core Cutting';
+    const location = target.location || 'Your Site';
+    const amount = target.quote_amount ? `₹${target.quote_amount}` : 'ખાસ ડિસ્કાઉન્ટ ભાવ';
+    const tech = target.assigned_technician || 'અમારા સિનિયર ટેકનિશિયન (Raju Team)';
+    const scheduleTime = target.scheduled_date ? `${target.scheduled_date} (${target.scheduled_time || 'સમયસર'})` : 'આવતીકાલે સવારે 10:00 AM';
+    const upiLink = `upi://pay?pa=9876543210@upi&pn=Diamond+Core+Cutting&am=${target.quote_amount || 2500}&cu=INR`;
+    const reviewLink = 'https://g.page/r/your-google-business-review/review';
+
+    if (templateId === 'quote') {
+      if (lang === 'gu') {
+        return `નમસ્તે ${name} જી! 🙏\n${defaultBusinessProfile.business_name} તરફથી આપનું હાર્દિક સ્વાગત છે.\n\n📍 સ્થળ: ${location}\n🛠️ સેવા: ${sName}\n💰 અંદાજિત કિંમત: ${amount}\n\n✨ અમારી વિશેષતા:\n• 0% વાઇબ્રેશન - દીવાલમાં કોઈ ક્રેક નહીં પડે\n• વોટર & ડસ્ટ કલેક્ટરથી 100% ક્લીન કટીંગ\n\nશું આપણે ટેકનિશિયનની સાઇટ વિઝિટ બુક કરીએ?`;
+      } else if (lang === 'hi') {
+        return `नमस्ते ${name} जी! 🙏\n${defaultBusinessProfile.business_name} में आपका स्वागत है।\n\n📍 लोकेशन: ${location}\n🛠️ सर्विस: ${sName}\n💰 अनुमानित कोटेशन: ${amount}\n\n✨ हमारी खासियत:\n• 0% वाइब्रेशन - दीवार पर कोई दरार नहीं\n• वाटर और डस्ट प्रोटेक्शन के साथ स्मूथ होल\n\nक्या हम कल के लिए टेक्नीशियन विज़िट बुक करें?`;
+      } else {
+        return `Hello ${name}! 🙏\nThank you for contacting ${defaultBusinessProfile.business_name}.\n\n📍 Location: ${location}\n🛠️ Service: ${sName}\n💰 Estimated Quote: ${amount}\n\n✨ Key Highlights:\n• Diamond Core Precision (Zero Vibration)\n• Clean slurry & dust containment\n\nShall we schedule a technician site visit?`;
+      }
+    } else if (templateId === 'schedule') {
+      if (lang === 'gu') {
+        return `નમસ્તે ${name} જી! 📅\nતમારું કોર કટીંગ કામ કન્ફર્મ થઈ ગયું છે.\n\n📅 તારીખ & સમય: ${scheduleTime}\n👨‍🔧 ટેકનિશિયન: ${tech}\n📍 સાઇટ: ${location}\n\nકૃપા કરીને સાઇટ પર 230V સિંગલ ફેઝ પાવર (15A) અને પાણીની વ્યવસ્થા તૈયાર રાખશો. આભાર!`;
+      } else if (lang === 'hi') {
+        return `नमस्ते ${name} जी! 📅\nआपकी कोर कटिंग विज़िट कन्फर्म हो चुकी है।\n\n📅 समय: ${scheduleTime}\n👨‍🔧 टेक्नीशियन: ${tech}\n📍 साइट: ${location}\n\nकृपया साइट पर 230V बिजली और पानी की व्यवस्था उपलब्ध रखें। धन्यवाद!`;
+      } else {
+        return `Hello ${name}! 📅\nYour core cutting appointment is confirmed.\n\n📅 Date & Time: ${scheduleTime}\n👨‍🔧 Assigned Team: ${tech}\n📍 Site Location: ${location}\n\nPlease ensure 230V single phase power and water supply are ready. Thank you!`;
+      }
+    } else if (templateId === 'ontheway') {
+      if (lang === 'gu') {
+        return `નમસ્તે ${name} જી! 🚗💨\nઅમારા ટેકનિશિયન (${tech}) તમારા સ્થળ (${location}) પર પહોંચવા નીકળી ગયા છે. તેઓ ટૂંક સમયમાં સાઇટ પર પહોંચશે. સંપર્ક: +91 9876543210.`;
+      } else if (lang === 'hi') {
+        return `नमस्ते ${name} जी! 🚗💨\nहमारे टेक्नीशियन (${tech}) आपकी साइट (${location}) के लिए निकल चुके हैं और जल्द ही पहुंच रहे हैं। संपर्क: +91 9876543210.`;
+      } else {
+        return `Hello ${name}! 🚗💨\nOur technician (${tech}) is on the way to your site at ${location} and will arrive shortly. Call: +91 9876543210.`;
+      }
+    } else if (templateId === 'prep') {
+      if (lang === 'gu') {
+        return `નમસ્તે ${name} જી! ⚡💧\nકોર કટીંગ કામ શરૂ કરતા પહેલા સાઇટ પર નીચેની બાબતો તૈયાર રાખવા વિનંતી:\n\n1. 230V સિંગલ ફેઝ (15A સોકેટ) પાવર પ્લગ\n2. સામાન્ય પાણીનો નળ / બકેટ\n3. કટીંગ પોઈન્ટ આગળથી સામાન હટાવી લેવો\n\nઅમે વોટર અને ડસ્ટ કલેક્ટર સાથે કામ કરીએ છીએ જેથી ટાઇલ્સ/દીવાલ ગંદી ન થાય. આભાર!`;
+      } else if (lang === 'hi') {
+        return `नमस्ते ${name} जी! ⚡💧\nकोर कटिंग शुरू होने से पहले कृपया साइट पर यह तैयारी रखें:\n\n1. 230V (15A सॉकेट) पावर कनेक्शन\n2. पानी का नल / बाल्टी\n3. कटिंग पॉइंट के सामने से सामान हटा लें\n\nहम वाटर और डस्ट प्रोटेक्शन के साथ काम करते हैं। धन्यवाद!`;
+      } else {
+        return `Hello ${name}! ⚡💧\nSite checklist for diamond core cutting:\n\n1. 230V (15A) single phase electricity\n2. Running water supply tap / bucket\n3. Clear cutting area from furniture\n\nOur team uses dust & water catchment for 100% cleanliness. Thank you!`;
+      }
+    } else if (templateId === 'payment') {
+      if (lang === 'gu') {
+        return `નમસ્તે ${name} જી! 💳\nતમારા સ્થળ (${location}) પર કોર કટીંગ કામ પૂર્ણ થયું છે.\n\n💰 કુલ રકમ: ${amount}\n📲 UPI પેમેન્ટ લિંક (GPay / PhonePe / Paytm):\n${upiLink}\n\nપેમેન્ટ કરી સ્ક્રીનશોટ મોકલવા વિનંતી. આભાર!`;
+      } else if (lang === 'hi') {
+        return `नमस्ते ${name} जी! 💳\nआपकी साइट (${location}) पर कोर कटिंग का काम पूरा हो चुका है।\n\n💰 कुल बिल: ${amount}\n📲 UPI पेमेंट लिंक (GPay / PhonePe / Paytm):\n${upiLink}\n\nकृपया भुगतान के बाद स्क्रीनशॉट भेजें। धन्यवाद!`;
+      } else {
+        return `Hello ${name}! 💳\nCore cutting work at ${location} is completed.\n\n💰 Total Amount: ${amount}\n📲 Instant UPI Pay Link (GPay / PhonePe / Paytm):\n${upiLink}\n\nPlease share screenshot after payment. Thank you!`;
+      }
+    } else if (templateId === 'review') {
+      if (lang === 'gu') {
+        return `નમસ્તે ${name} જી! ⭐⭐⭐⭐⭐\nઅમારી સેવા પસંદ કરવા બદલ આપનો આભાર!\nજો તમને અમારું ફિનિશિંગ અને ઝીરો-વાઇબ્રેશન કામ ગમ્યું હોય, તો કૃપા કરીને અમને ગૂગલ પર 5-Star રેટિંગ આપી સપોર્ટ કરશો:\n\n👉 ${reviewLink}\n\nઆપનો ખૂબ ખૂબ આભાર! 🙏`;
+      } else if (lang === 'hi') {
+        return `नमस्ते ${name} जी! ⭐⭐⭐⭐⭐\nहमारी डायमंड कोर कटिंग सर्विस लेने के लिए धन्यवाद!\nयदि आपको हमारी फिनिशिंग पसंद आई हो, तो कृपया गूगल पर 5-Star रिव्यू देकर हमें सपोर्ट करें:\n\n👉 ${reviewLink}\n\nबहुत धन्यवाद! 🙏`;
+      } else {
+        return `Hello ${name}! ⭐⭐⭐⭐⭐\nThank you for choosing ${defaultBusinessProfile.business_name}!\nIf you loved our clean and zero-vibration workmanship, please give us a 5-Star review on Google:\n\n👉 ${reviewLink}\n\nThank you! 🙏`;
+      }
+    } else if (templateId === 'followup') {
+      if (lang === 'gu') {
+        return `નમસ્તે ${name} જી! 🎁\nઅગાઉ તમે ${sName} માટે પૂછપરછ કરી હતી.\nજો તમે આ અઠવાડિયે બુકિંગ કરશો તો અમે તમને **10% સ્પેશિયલ ડિસ્કાઉન્ટ** અને **ફ્રી ડસ્ટ કલેક્ટર પ્રોટેક્શન** આપીશું!\n\nશું આપણે કાલે વિઝિટ શેડ્યૂલ કરીએ?`;
+      } else if (lang === 'hi') {
+        return `नमस्ते ${name} जी! 🎁\nआपने पहले ${sName} के लिए जानकारी ली थी।\nयदि आप इस सप्ताह काम बुक करते हैं, तो हम आपको **10% स्पेशल डिस्काउंट** देंगे!\n\nक्या हम कल विज़िट बुक करें?`;
+      } else {
+        return `Hello ${name}! 🎁\nFollowing up regarding your inquiry for ${sName}.\nBook your core cutting this week to get **10% Special Discount** + **Free Dust Collection**!\n\nShall we schedule tomorrow?`;
+      }
+    }
+    return `Hello ${name}!`;
+  };
+
   const openWhatsAppModal = (enquiry: Enquiry) => {
     setWaEnquiry(enquiry);
-    updateWaMessage('gu', enquiry);
+    setSelectedWaTemplate('quote');
+    setWaLanguage('gu');
+    setCustomWaMessage(getTemplateContent('quote', 'gu', enquiry));
     setIsWaModalOpen(true);
   };
 
-  const updateWaMessage = (lang: 'gu' | 'hi' | 'en', enq?: Enquiry | null) => {
-    const target = enq || waEnquiry;
-    if (!target) return;
+  const selectTemplateAndLang = (templateId: string, lang: 'gu' | 'hi' | 'en') => {
+    if (!waEnquiry) return;
+    setSelectedWaTemplate(templateId);
     setWaLanguage(lang);
-
-    const sName = target.service_name || 'Core Cutting';
-    const amount = target.quote_amount ? `₹${target.quote_amount}` : 'ખાસ ડિસ્કાઉન્ટેડ રેટ';
-
-    if (lang === 'gu') {
-      setCustomWaMessage(
-        `નમસ્તે ${target.name} જી! 🙏\n` +
-        `ડાયમંડ કોર કટીંગ સેવાઓ માટે આપનો આભાર.\n` +
-        `તમારા સ્થળ (${target.location}) પર ${sName} માટે અંદાજિત કિંમત: ${amount} છે.\n\n` +
-        `• ઝીરો વાઇબ્રેશન & સ્મૂથ ફિનિશિંગ\n` +
-        `• વોટર અને ડસ્ટ કલેક્ટર સુવિધા\n\n` +
-        `શું આપણે ટેકનિશિયનની સાઇટ વિઝિટ શેડ્યૂલ કરીએ?`
-      );
-    } else if (lang === 'hi') {
-      setCustomWaMessage(
-        `नमस्ते ${target.name} जी! 🙏\n` +
-        `डायमंड कोर कटिंग सर्विस के लिए आपका धन्यवाद।\n` +
-        `आपके लोकेशन (${target.location}) पर ${sName} का अनुमानित कोटेशन: ${amount} है।\n\n` +
-        `• 0% वाइब्रेशन, बिना किसी दरार के स्मूथ होल\n` +
-        `• धूल और पानी प्रोटेक्शन के साथ\n\n` +
-        `क्या हम कल के लिए टेक्नीशियन विज़िट बुक करें?`
-      );
-    } else {
-      setCustomWaMessage(
-        `Hello ${target.name}! 🙏\n` +
-        `Thank you for contacting ${defaultBusinessProfile.business_name}.\n` +
-        `Quotation for ${sName} at ${target.location}: ${amount}.\n\n` +
-        `• Diamond Core Precision (Zero Vibration)\n` +
-        `• Clean slurry & dust containment\n\n` +
-        `Would you like us to schedule a technician visit?`
-      );
-    }
+    setCustomWaMessage(getTemplateContent(templateId, lang, waEnquiry));
   };
 
   const handleSendWa = () => {
@@ -1573,47 +1625,111 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ================================================================= */}
-      {/* MODAL 6: WHATSAPP QUICK TEMPLATES */}
+      {/* MODAL 6: WHATSAPP READY TEMPLATE SELECTOR CENTER */}
       {/* ================================================================= */}
       {isWaModalOpen && waEnquiry && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-3xl w-full p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-extrabold text-white">WhatsApp to {waEnquiry.name}</h3>
-              <button onClick={() => setIsWaModalOpen(false)} className="text-slate-400 hover:text-white">
+              <div className="flex items-center space-x-2.5">
+                <div className="h-9 w-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg">
+                  💬
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">WhatsApp Ready-Message Center</h3>
+                  <p className="text-xs text-slate-400">Select any template $\rightarrow$ Send immediately to <strong>{waEnquiry.name}</strong> ({waEnquiry.phone})</p>
+                </div>
+              </div>
+              <button onClick={() => setIsWaModalOpen(false)} className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="flex gap-2">
-              {(['gu', 'hi', 'en'] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => updateWaMessage(l)}
-                  className={`flex-1 py-1.5 rounded-xl text-xs font-bold ${
-                    waLanguage === l ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
-                  }`}
-                >
-                  {l === 'gu' ? 'ગુજરાતી' : l === 'hi' ? 'हिंदी' : 'English'}
-                </button>
-              ))}
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              {/* Left Column: Ready-Made Template List */}
+              <div className="md:col-span-5 space-y-2 max-h-96 overflow-y-auto pr-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                  1. Choose Template Format:
+                </span>
+                {WA_TEMPLATES.map((tmpl) => (
+                  <button
+                    key={tmpl.id}
+                    onClick={() => selectTemplateAndLang(tmpl.id, waLanguage)}
+                    className={`w-full text-left p-3 rounded-2xl border transition-all ${
+                      selectedWaTemplate === tmpl.id
+                        ? 'bg-emerald-500/15 border-emerald-500/60 shadow-xs'
+                        : 'bg-[#090C11] border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className={`font-bold text-xs ${selectedWaTemplate === tmpl.id ? 'text-emerald-400' : 'text-white'}`}>
+                      {tmpl.title}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                      {tmpl.desc}
+                    </div>
+                  </button>
+                ))}
+              </div>
 
-            <textarea
-              rows={5}
-              value={customWaMessage}
-              onChange={(e) => setCustomWaMessage(e.target.value)}
-              className="w-full p-3 bg-[#090C11] border border-slate-700 rounded-xl text-xs text-white"
-            />
+              {/* Right Column: Language Switcher & Preview */}
+              <div className="md:col-span-7 space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                      2. Language:
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-bold">
+                      Auto-injected for {waEnquiry.name}
+                    </span>
+                  </div>
 
-            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-800">
-              <button onClick={() => setIsWaModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl">
-                Cancel
-              </button>
-              <button onClick={handleSendWa} className="px-5 py-2 bg-emerald-600 text-white text-xs font-black rounded-xl flex items-center space-x-1">
-                <Send className="h-4 w-4" />
-                <span>Open in WhatsApp</span>
-              </button>
+                  {/* Language Switcher */}
+                  <div className="flex gap-2">
+                    {(['gu', 'hi', 'en'] as const).map((l) => (
+                      <button
+                        key={l}
+                        onClick={() => selectTemplateAndLang(selectedWaTemplate, l)}
+                        className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          waLanguage === l
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-[#090C11] border border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {l === 'gu' ? 'ગુજરાતી' : l === 'hi' ? 'हिंदी' : 'English'}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-3">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
+                      3. Live Message Preview (Editable):
+                    </span>
+                    <textarea
+                      rows={8}
+                      value={customWaMessage}
+                      onChange={(e) => setCustomWaMessage(e.target.value)}
+                      className="w-full p-3.5 bg-[#090C11] border border-slate-700 rounded-2xl text-xs text-white leading-relaxed focus:outline-none focus:border-emerald-500 font-normal"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                  <button
+                    onClick={() => setIsWaModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={handleSendWa}
+                    className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center space-x-2 shadow-emerald-glow active:scale-95 transition-all"
+                  >
+                    <Send className="h-4 w-4" />
+                    <span>Send Message on WhatsApp</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
