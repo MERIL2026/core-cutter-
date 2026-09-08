@@ -116,7 +116,13 @@ export type AllowlistedAnalyticsEvent =
   | 'quote_start'
   | 'quote_submit'
   | 'map_click'
-  | 'service_cta_click';
+  | 'service_cta_click'
+  | 'voice_start'
+  | 'voice_transcription_success'
+  | 'voice_transcription_error'
+  | 'voice_response_started'
+  | 'voice_response_completed'
+  | 'voice_error';
 
 export interface AnalyticsEvent {
   id: string;

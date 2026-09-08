@@ -15,6 +15,12 @@ const ALLOWLISTED_EVENTS: Set<AllowlistedAnalyticsEvent> = new Set([
   'quote_submit',
   'map_click',
   'service_cta_click',
+  'voice_start',
+  'voice_transcription_success',
+  'voice_transcription_error',
+  'voice_response_started',
+  'voice_response_completed',
+  'voice_error',
 ]);
 
 /**

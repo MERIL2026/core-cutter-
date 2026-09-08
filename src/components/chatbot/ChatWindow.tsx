@@ -1,21 +1,20 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Send,
   X,
   RotateCcw,
   Sparkles,
-  Bot,
   Globe,
   Loader2,
-  Phone,
-  MessageSquare,
 } from 'lucide-react';
-import { ChatMessage, ChatLanguage, ChatActionChip } from '@/types/chatbot';
+import { ChatMessage, ChatLanguage, ChatActionChip, VoiceLanguageCode, VoiceState } from '@/types/chatbot';
 import { ChatMessageItem } from './ChatMessage';
 import { VoiceInputButton } from './VoiceInputButton';
+import { AssistantBlob } from './AssistantBlob';
 import { defaultBusinessProfile } from '@/content/business';
+import { initVoices, stopSpeaking, speakAssistantMessage } from '@/lib/speechSynthesis';
 
 export interface ChatWindowProps {
   onClose: () => void;
@@ -26,30 +25,33 @@ const starterPrompts: Record<ChatLanguage, string[]> = {
     'What hole size do I need for Split AC?',
     'Can you drill RCC beams without cracking?',
     'How do I get an immediate price quote?',
+    'Is dust control included for furnished homes?',
   ],
   gu: [
     'સ્પ્લિટ AC માટે કેટલા ઇંચનું કાણું જોઈએ?',
     'RCC સ્લેબમાં વાઇબ્રેશન વગર કટિંગ થાય?',
     'કોર કટિંગનો ચાર્જ કેટલો થશે?',
+    'ધૂળ કે કચરો ઊડશે?',
   ],
   hi: [
     'स्प्लिट एसी के लिए कितने इंच का होल चाहिए?',
     'क्या RCC बीम में बिना क्रैक ड्रिलिंग होती है?',
     'कोर कटिंग का कितना रेट है?',
+    'क्या घर में धूल उड़ेगी?',
   ],
 };
 
 const welcomeMessages: Record<ChatLanguage, string> = {
-  en: `Hello! 👋 I am the AI Assistant for ${defaultBusinessProfile.business_name}. How can I assist you with diamond core cutting, AC pipe holes, or RCC slab drilling?`,
-  gu: `નમસ્તે! 👋 હું ${defaultBusinessProfile.business_name} નો AI સહાયક છું. તમને ડાયમંડ કોર કટિંગ, AC ડ્રેઇન હોલ અથવા RCC સ્લેબ ડ્રિલિંગ બાબતે શું માહિતી જોઈએ છે?`,
-  hi: `नमस्ते! 👋 मैं ${defaultBusinessProfile.business_name} का AI असिस्टेंट हूँ। डायमंड कोर कटिंग, एसी पाइप होल या RCC स्लैब ड्रिलिंग में आपकी क्या मदद करूँ?`,
+  en: `Hello! 👋 I'm Priya, your AI Technical Specialist for ${defaultBusinessProfile.business_name}. How can I help you today? Ask me about AC pipe holes, RCC slab core cutting, or get an instant quote!`,
+  gu: `નમસ્તે! 👋 હું પ્રિયા છું, ${defaultBusinessProfile.business_name} ની AI ટેકનિકલ સહાયક. હું તમને આજે શું મદદ કરી શકું? ડાયમંડ કોર કટિંગ, AC ડ્રેઇન હોલ અથવા ભાવ અંદાજ બાબતે કંઈપણ પૂછો.`,
+  hi: `नमस्ते! 👋 मैं प्रिया हूँ, ${defaultBusinessProfile.business_name} की AI टेक्निकल असिस्टेंट। आज मैं आपकी क्या मदद करूँ? डायमंड कोर कटिंग, एसी पाइप होल या रेट के बारे में आप कुछ भी पूछ सकते हैं!`,
 };
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
   const [language, setLanguage] = useState<ChatLanguage>('en');
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
+  const [voiceState, setVoiceState] = useState<VoiceState>('IDLE');
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: '1',
@@ -57,7 +59,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       text: welcomeMessages['en'],
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       actionChips: [
-        { label: '📞 Call', type: 'call', value: defaultBusinessProfile.phone },
+        { label: '📞 Call Now', type: 'call', value: defaultBusinessProfile.phone },
         { label: '💬 WhatsApp', type: 'whatsapp', value: (defaultBusinessProfile.whatsapp || defaultBusinessProfile.phone).replace(/\D/g, '') },
         { label: '📝 Get Quote', type: 'link', value: '#quote-section' },
       ],
@@ -71,12 +73,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
   };
 
   useEffect(() => {
+    initVoices();
+    return () => {
+      stopSpeaking();
+    };
+  }, []);
+
+  useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading]);
+  }, [messages, isLoading, voiceState]);
 
   const handleLanguageChange = (newLang: ChatLanguage) => {
+    stopSpeaking();
     setLanguage(newLang);
-    // If only initial message is present, update the initial message in place
     setMessages((prev) => {
       if (prev.length <= 1) {
         return [
@@ -111,6 +120,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
   };
 
   const handleReset = () => {
+    stopSpeaking();
     setMessages([
       {
         id: Date.now().toString(),
@@ -127,15 +137,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
     ]);
   };
 
-  const handleSendMessage = async (textToSend?: string) => {
+  const handleClose = () => {
+    stopSpeaking();
+    onClose();
+  };
+
+  const handleSendMessage = async (textToSend?: string, autoSpeakResponse = false, forcedLang?: ChatLanguage) => {
     const text = (textToSend || input).trim();
     if (!text || isLoading) return;
 
+    stopSpeaking();
+
+    const activeLang = forcedLang || language;
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       sender: 'user',
       text,
-      language,
+      language: activeLang,
+      isVoice: autoSpeakResponse,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
@@ -144,8 +163,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
     setIsLoading(true);
 
     try {
-      // Build conversation history for API
-      const history = messages.slice(-12).map((m) => ({
+      const history = messages.slice(-6).map((m) => ({
         role: m.sender === 'user' ? ('user' as const) : ('model' as const),
         parts: [{ text: m.text }],
       }));
@@ -155,7 +173,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          language,
+          language: activeLang,
           history,
         }),
       });
@@ -165,23 +183,40 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       }
 
       const data = await res.json();
-      setIsOnline(true);
+      const resolvedLang = data.language || activeLang;
+      const voiceLangCode: VoiceLanguageCode =
+        data.voice_language_code || (resolvedLang === 'gu' ? 'gu-IN' : resolvedLang === 'hi' ? 'hi-IN' : 'en-IN');
+
+      if (resolvedLang !== language) {
+        setLanguage(resolvedLang);
+      }
+
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'assistant',
         text: data.reply,
-        language: data.language || language,
+        language: resolvedLang,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         actionChips: data.actionChips,
       };
 
       setMessages((prev) => [...prev, botMessage]);
+
+      if (autoSpeakResponse && data.reply) {
+        speakAssistantMessage(
+          data.reply,
+          resolvedLang,
+          voiceLangCode,
+          () => setVoiceState('SPEAKING'),
+          () => setVoiceState('IDLE'),
+          () => setVoiceState('IDLE')
+        );
+      }
     } catch (err) {
-      setIsOnline(false);
       const errorReplies = {
-        en: "I'm having a little trouble connecting right now. Please call our technician directly at " + defaultBusinessProfile.phone,
-        gu: "કનેક્શનમાં થોડી સમસ્યા આવી છે. કૃપા કરીને સીધા અમારા ટેકનિશિયનને કૉલ કરો: " + defaultBusinessProfile.phone,
-        hi: "कनेक्ट करने में थोड़ी समस्या आ रही है। कृपया सीधे हमारे तकनीशियन से संपर्क करें: " + defaultBusinessProfile.phone,
+        en: `I'm having a little trouble connecting right now. Please call our technical team directly at ${defaultBusinessProfile.phone}`,
+        gu: `કનેક્શનમાં થોડી સમસ્યા આવી છે. કૃપા કરીને સીધા અમારા ટેકનિશિયનને કૉલ કરો: ${defaultBusinessProfile.phone}`,
+        hi: `कनेक्ट करने में थोड़ी समस्या आ रही है। कृपया सीधे हमारे तकनीशियन से संपर्क करें: ${defaultBusinessProfile.phone}`,
       };
 
       setMessages((prev) => [
@@ -212,7 +247,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       const el = document.getElementById(chip.value.replace('#', ''));
       if (el) {
         el.scrollIntoView({ behavior: 'smooth' });
-        onClose();
+        handleClose();
       } else {
         window.location.href = chip.value;
       }
@@ -221,113 +256,147 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
     }
   };
 
-  const handleSendMessageRef = useRef(handleSendMessage);
-  handleSendMessageRef.current = handleSendMessage;
-
-  const handleVoiceTranscript = useCallback((transcript: string) => {
+  const handleVoiceTranscript = (transcript: string, detectedLang?: ChatLanguage) => {
     if (transcript.trim()) {
-      handleSendMessageRef.current(transcript);
+      if (detectedLang && detectedLang !== language) {
+        setLanguage(detectedLang);
+      }
+      handleSendMessage(transcript, true, detectedLang);
     }
-  }, []);
+  };
 
   const inputPlaceholder = {
-    en: 'Ask a question or click the mic...',
-    gu: 'પ્રશ્ન પૂછો અથવા માઇક પર ક્લિક કરો...',
-    hi: 'सवाल पूछें या माइक पर क्लिक करें...',
+    en: 'Ask Priya a question or click mic to speak...',
+    gu: 'પ્રિયાને પ્રશ્ન પૂછો અથવા બોલવા માઇક દબાવો...',
+    hi: 'प्रिया से प्रश्न पूछें या बोलने के लिए माइक दबाएं...',
   }[language];
 
+  const blobState =
+    voiceState === 'SPEAKING'
+      ? 'speaking'
+      : voiceState === 'LISTENING'
+      ? 'listening'
+      : isLoading || voiceState === 'PROCESSING'
+      ? 'thinking'
+      : 'idle';
+
   return (
-    <div className="flex flex-col h-[min(560px,calc(100dvh-160px))] w-full sm:w-[410px] bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden animate-fade-in-up transition-all z-50">
-      {/* Top Header */}
-      <div className="bg-brand-dark text-white px-4 py-3.5 flex items-center justify-between border-b border-slate-800">
-        <div className="flex items-center space-x-2.5">
-          <div className="relative">
-            <div className="h-9 w-9 rounded-xl bg-brand-orange text-white flex items-center justify-center font-black text-sm shadow-md">
-              <Bot className="h-5 w-5" />
+    <div className="flex flex-col h-[600px] max-h-[85vh] w-full sm:w-[420px] bg-[#0E1218] text-gray-100 rounded-3xl shadow-[0_24px_64px_rgba(0,0,0,0.85)] border border-slate-800 overflow-hidden animate-chat-window transition-all z-50">
+      {/* Header with Priya's Identity - Styled to Match Website Dark Hero & Navbar */}
+      <div className="bg-[#12151B] px-4 py-3 flex flex-col border-b border-slate-800 relative overflow-hidden">
+        {/* Subtle Brand Orange & Amber Glow */}
+        <div className="absolute -top-10 -left-10 w-44 h-44 bg-brand-orange/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-44 h-44 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center justify-between z-10">
+          <div className="flex items-center space-x-3">
+            {/* Header Animated Blob with Reactive Scale */}
+            <div className="relative shrink-0 transition-transform hover:scale-110">
+              <AssistantBlob state={blobState} size="md" audioReactive />
             </div>
-            <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-brand-dark ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+
+            <div className="flex flex-col">
+              <div className="flex items-center space-x-2">
+                <span className="font-extrabold text-base tracking-tight text-white">
+                  Priya <span className="text-brand-orange font-semibold text-xs tracking-normal">· Diamond AI Specialist</span>
+                </span>
+              </div>
+              <div className="flex items-center space-x-1.5 mt-0.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-orange opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span className="text-xs text-emerald-400 font-medium flex items-center space-x-1.5">
+                  {blobState === 'speaking' ? (
+                    <span className="text-brand-orange font-semibold flex items-center space-x-1">
+                      <span className="flex space-x-0.5 items-center">
+                        <span className="h-2 w-0.5 bg-brand-orange rounded-full animate-pulse" />
+                        <span className="h-3 w-0.5 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: '120ms' }} />
+                        <span className="h-2 w-0.5 bg-brand-orange rounded-full animate-pulse" style={{ animationDelay: '240ms' }} />
+                      </span>
+                      <span>Priya is speaking...</span>
+                    </span>
+                  ) : blobState === 'listening' ? (
+                    <span className="text-brand-orange font-semibold animate-pulse">Listening to you...</span>
+                  ) : blobState === 'thinking' ? (
+                    <span className="text-amber-400 font-medium animate-pulse">Calculating & Thinking...</span>
+                  ) : (
+                    'Online · Voice & Chat Ready'
+                  )}
+                </span>
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="flex items-center space-x-1.5">
-              <span className="font-extrabold text-sm tracking-tight text-white">
-                {defaultBusinessProfile.business_name.split(' ')[0] || 'Core'} AI
-              </span>
-              <span className="text-[10px] font-bold bg-brand-orange/30 text-brand-orange px-1.5 py-0.2 rounded uppercase">
-                AI Assistant
-              </span>
-            </div>
-            <span className={`text-[11px] font-medium flex items-center gap-1.5 ${isOnline ? 'text-emerald-400' : 'text-amber-400'}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              {isOnline ? 'Online • Voice & Text' : 'Quick Answers Mode'}
-            </span>
+
+          <div className="flex items-center space-x-1 z-10">
+            <button
+              type="button"
+              onClick={handleReset}
+              title="Reset Chat"
+              aria-label="Reset conversation"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 transition-all hover:scale-110 active:scale-95 focus:outline-none focus:ring-1 focus:ring-brand-orange"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              title="Close"
+              aria-label="Close chat window"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 transition-all hover:scale-110 active:scale-95 focus:outline-none focus:ring-1 focus:ring-brand-orange"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center space-x-1">
-          <button
-            type="button"
-            onClick={handleReset}
-            title="Reset Chat"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            title="Close"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
+        {/* Language Selection Switcher Pills (Top Header Bar) */}
+        <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs z-10">
+          <div className="flex items-center space-x-1.5 text-gray-400 font-medium">
+            <Globe className="h-3.5 w-3.5 text-brand-orange" />
+            <span>Select Language:</span>
+          </div>
 
-      {/* Language Selector Bar */}
-      <div className="bg-slate-900 px-3 py-2 flex items-center justify-between border-b border-slate-800 text-xs">
-        <div className="flex items-center space-x-1 text-slate-400 text-[11px] font-medium">
-          <Globe className="h-3.5 w-3.5 text-brand-orange" />
-          <span>Language:</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <button
-            type="button"
-            onClick={() => handleLanguageChange('en')}
-            className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
-              language === 'en'
-                ? 'bg-brand-orange text-white shadow-sm'
-                : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            English
-          </button>
-          <button
-            type="button"
-            onClick={() => handleLanguageChange('gu')}
-            className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
-              language === 'gu'
-                ? 'bg-brand-orange text-white shadow-sm'
-                : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            ગુજરાતી
-          </button>
-          <button
-            type="button"
-            onClick={() => handleLanguageChange('hi')}
-            className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
-              language === 'hi'
-                ? 'bg-brand-orange text-white shadow-sm'
-                : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            हिंदी
-          </button>
+          <div className="flex items-center space-x-1 bg-[#090C11] p-0.5 rounded-full border border-slate-800 shadow-inner">
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('en')}
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all duration-200 active:scale-95 ${
+                language === 'en'
+                  ? 'bg-gradient-to-r from-brand-orange to-amber-500 text-white shadow-orange-glow scale-105'
+                  : 'text-gray-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              English
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('hi')}
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all duration-200 active:scale-95 ${
+                language === 'hi'
+                  ? 'bg-gradient-to-r from-brand-orange to-amber-500 text-white shadow-orange-glow scale-105'
+                  : 'text-gray-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              हिंदी
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('gu')}
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all duration-200 active:scale-95 ${
+                language === 'gu'
+                  ? 'bg-gradient-to-r from-brand-orange to-amber-500 text-white shadow-orange-glow scale-105'
+                  : 'text-gray-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              ગુજરાતી
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto overscroll-contain p-4 bg-slate-50/70 space-y-2">
+      <div className="flex-1 overflow-y-auto p-4 bg-[#0E1218] space-y-2.5 chatbot-scroll">
         {messages.map((message) => (
           <ChatMessageItem
             key={message.id}
@@ -338,14 +407,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
         ))}
 
         {isLoading && (
-          <div className="flex items-center space-x-2 my-2.5 pl-2">
-            <div className="h-7 w-7 rounded-full bg-brand-orange text-white flex items-center justify-center shrink-0">
-              <Bot className="h-4 w-4" />
+          <div className="flex items-center space-x-2.5 my-3 pl-1 animate-message-pop">
+            <div className="shrink-0">
+              <AssistantBlob state="thinking" size="sm" />
             </div>
-            <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-none px-4 py-2.5 shadow-sm flex items-center space-x-1.5">
+            <div className="bg-[#181E28] border border-slate-700/80 rounded-2xl rounded-bl-none px-4 py-2.5 shadow-md flex items-center space-x-2">
               <span className="h-2 w-2 rounded-full bg-brand-orange animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="h-2 w-2 rounded-full bg-brand-orange animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="h-2 w-2 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '150ms' }} />
               <span className="h-2 w-2 rounded-full bg-brand-orange animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="text-xs text-slate-400 font-medium ml-1">Priya is typing...</span>
             </div>
           </div>
         )}
@@ -353,40 +423,41 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Starter Prompts Carousel (when conversation is short) */}
+      {/* Starter Prompts Carousel (Clean No-Scrollbar Horizontal Slider) */}
       {messages.length <= 3 && (
-        <div className="relative px-3 py-2 bg-white border-t border-gray-100">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pr-6">
-            <Sparkles className="h-3.5 w-3.5 text-brand-orange shrink-0 ml-1" />
-            {starterPrompts[language].map((prompt, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSendMessage(prompt)}
-                className="text-[11px] whitespace-nowrap bg-orange-50 hover:bg-brand-orange hover:text-white text-gray-700 border border-orange-200 px-2.5 py-1 rounded-full font-medium transition-colors shrink-0"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
-          {/* Fade hint for horizontal scrollability */}
-          <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white to-transparent pointer-events-none" />
+        <div
+          className="px-3 py-2 bg-[#12151B] border-t border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          <Sparkles className="h-3.5 w-3.5 text-brand-orange shrink-0 ml-0.5 animate-pulse" />
+          {starterPrompts[language].map((prompt, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSendMessage(prompt)}
+              className="text-[11px] whitespace-nowrap bg-[#181E28] hover:bg-brand-orange/20 text-gray-300 hover:text-white border border-slate-700/80 hover:border-brand-orange/80 px-3 py-1.5 rounded-full font-medium transition-all duration-200 shrink-0 focus:outline-none focus:ring-1 focus:ring-brand-orange hover:-translate-y-0.5 active:scale-95 shadow-xs"
+            >
+              {prompt}
+            </button>
+          ))}
         </div>
       )}
 
-      {/* Bottom Input Form with Voice Button */}
-      <div className="p-3 bg-white border-t border-gray-100">
+      {/* Bottom Input Area */}
+      <div className="p-3 bg-[#12151B] border-t border-slate-800">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSendMessage();
           }}
-          className="flex items-center space-x-2"
+          className="flex items-center space-x-2 bg-[#0A0D14] border border-slate-800 rounded-full px-2 py-1.5 focus-within:border-brand-orange/80 transition-all shadow-inner"
         >
-          {/* Voice Input Button (Speech-to-Text) */}
+          {/* Voice Input Button */}
           <VoiceInputButton
             language={language}
             onTranscript={handleVoiceTranscript}
+            onInterimTranscript={setInput}
+            onVoiceStateChange={setVoiceState}
             disabled={isLoading}
           />
 
@@ -396,18 +467,35 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
             onChange={(e) => setInput(e.target.value)}
             placeholder={inputPlaceholder}
             disabled={isLoading}
-            className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-full text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:bg-white transition-all"
+            className="flex-1 px-2 py-1 bg-transparent text-sm text-white placeholder:text-gray-500 focus:outline-none"
           />
 
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
             aria-label="Send message"
-            className="p-2.5 rounded-full bg-brand-orange hover:bg-brand-orange-hover disabled:bg-gray-200 text-white shadow-orange-glow disabled:shadow-none transition-all active:scale-95 shrink-0"
+            className="p-2.5 rounded-full bg-gradient-to-tr from-brand-orange to-amber-500 hover:from-brand-orange-hover hover:to-amber-600 disabled:opacity-40 disabled:hover:from-brand-orange disabled:hover:to-amber-500 text-white shadow-orange-glow transition-all active:scale-95 hover:scale-105 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-orange"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         </form>
+
+        {/* Footer Brand & AI Indicator */}
+        <div className="mt-2 px-1 flex items-center justify-between text-[11px] text-gray-500">
+          <div className="flex items-center space-x-1.5">
+            <span className="text-gray-300 font-medium">{defaultBusinessProfile.business_name}</span>
+            <span>· 2-Hour Fast Dispatch</span>
+          </div>
+
+          <div className="flex items-center space-x-1.5 text-gray-400">
+            <span className="flex space-x-0.5 items-center">
+              <span className="h-2 w-0.5 bg-brand-orange/90 rounded-full animate-pulse" />
+              <span className="h-3 w-0.5 bg-amber-400/90 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+              <span className="h-2 w-0.5 bg-brand-orange/90 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+            </span>
+            <span className="text-brand-orange font-medium text-[10px]">Sarvam Voice AI</span>
+          </div>
+        </div>
       </div>
     </div>
   );
