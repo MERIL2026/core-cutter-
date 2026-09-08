@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminSession } from '@/lib/adminAuth';
-import { getAllEnquiries, updateEnquiryStatus, deleteEnquiry } from '@/lib/enquiryStore';
+import { getAllEnquiries, updateEnquiryDetails, deleteEnquiry } from '@/lib/enquiryStore';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +13,9 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const status = url.searchParams.get('status');
     const search = url.searchParams.get('search');
+    const scheduled = url.searchParams.get('scheduled') === 'true';
 
-    const result = await getAllEnquiries({ status, search });
+    const result = await getAllEnquiries({ status, search, scheduledOnly: scheduled });
 
     return NextResponse.json({
       success: true,
@@ -27,7 +28,18 @@ export async function GET(req: NextRequest) {
       {
         success: true,
         enquiries: [],
-        stats: { total: 0, new: 0, contacted: 0, quoted: 0, closed: 0, spam: 0, today: 0 },
+        stats: {
+          total: 0,
+          new: 0,
+          contacted: 0,
+          quoted: 0,
+          closed: 0,
+          spam: 0,
+          today: 0,
+          totalRevenue: 0,
+          pipelineValue: 0,
+          scheduledCount: 0,
+        },
         warning: 'Enquiries store temporarily unavailable.',
       },
       { status: 200 }
@@ -42,7 +54,22 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, phone, whatsappPreference, serviceId, location, message, status } = body;
+    const {
+      name,
+      phone,
+      whatsappPreference,
+      serviceId,
+      location,
+      message,
+      status,
+      quote_amount,
+      collected_amount,
+      scheduled_date,
+      scheduled_time,
+      assigned_technician,
+      internal_notes,
+      followup_date,
+    } = body;
 
     if (!name || !phone || !location) {
       return NextResponse.json(
@@ -62,6 +89,13 @@ export async function POST(req: NextRequest) {
       source: 'admin_manual',
       sourcePage: '/admin',
       status: status === 'contacted' || status === 'quoted' || status === 'closed' ? status : 'new',
+      quote_amount: quote_amount ? Number(quote_amount) : null,
+      collected_amount: collected_amount ? Number(collected_amount) : null,
+      scheduled_date: scheduled_date || null,
+      scheduled_time: scheduled_time || null,
+      assigned_technician: assigned_technician || null,
+      internal_notes: internal_notes || null,
+      followup_date: followup_date || null,
     });
 
     return NextResponse.json({
@@ -82,19 +116,23 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, status } = body;
+    const { id, ...updates } = body;
 
-    const allowedStatuses = ['new', 'contacted', 'quoted', 'closed', 'spam'];
-    if (!id || !status || !allowedStatuses.includes(status)) {
-      return NextResponse.json({ success: false, error: 'Invalid parameters' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Enquiry ID is required' }, { status: 400 });
     }
 
-    const success = await updateEnquiryStatus(id, status);
+    const allowedStatuses = ['new', 'contacted', 'quoted', 'closed', 'spam'];
+    if (updates.status && !allowedStatuses.includes(updates.status)) {
+      return NextResponse.json({ success: false, error: 'Invalid status' }, { status: 400 });
+    }
+
+    const success = await updateEnquiryDetails(id, updates);
     if (!success) {
       return NextResponse.json({ success: false, error: 'Enquiry not found or could not be updated' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, message: 'Status updated' });
+    return NextResponse.json({ success: true, message: 'Enquiry updated successfully' });
   } catch (error: any) {
     console.error('Admin Enquiry Update Error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -121,4 +159,3 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

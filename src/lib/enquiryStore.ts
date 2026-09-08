@@ -18,6 +18,13 @@ export interface EnquiryRecord {
   created_at: string;
   updated_at?: string;
   source?: string;
+  quote_amount?: number | null;
+  collected_amount?: number | null;
+  scheduled_date?: string | null;
+  scheduled_time?: string | null;
+  assigned_technician?: string | null;
+  internal_notes?: string | null;
+  followup_date?: string | null;
 }
 
 export interface EnquiryStats {
@@ -28,6 +35,9 @@ export interface EnquiryStats {
   closed: number;
   spam: number;
   today: number;
+  totalRevenue: number;
+  pipelineValue: number;
+  scheduledCount: number;
 }
 
 function getFallbackFilePath(): string {
@@ -115,6 +125,13 @@ export async function saveEnquiry(data: {
   sourcePage?: string;
   source?: string;
   status?: 'new' | 'spam';
+  quote_amount?: number | null;
+  collected_amount?: number | null;
+  scheduled_date?: string | null;
+  scheduled_time?: string | null;
+  assigned_technician?: string | null;
+  internal_notes?: string | null;
+  followup_date?: string | null;
 }): Promise<{ success: boolean; id: string; storage: 'supabase' | 'db' | 'fallback' }> {
   const recordId = `enq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const nowIso = new Date().toISOString();
@@ -137,9 +154,16 @@ export async function saveEnquiry(data: {
     created_at: nowIso,
     updated_at: nowIso,
     source: data.source || 'web_form',
+    quote_amount: data.quote_amount ?? null,
+    collected_amount: data.collected_amount ?? null,
+    scheduled_date: data.scheduled_date ?? null,
+    scheduled_time: data.scheduled_time ?? null,
+    assigned_technician: data.assigned_technician ?? null,
+    internal_notes: data.internal_notes ?? null,
+    followup_date: data.followup_date ?? null,
   };
 
-  // Always write to local fallback so data is never lost
+  // 1. Persist immediately to local fallback
   try {
     const records = readFallbackFile();
     records.unshift(newRecord);
@@ -148,7 +172,7 @@ export async function saveEnquiry(data: {
     console.error('Fallback write error:', err);
   }
 
-  // 1. Try Supabase JS client
+  // 2. Supabase SDK
   const supabase = getSupabaseClient();
   if (supabase) {
     try {
@@ -168,6 +192,13 @@ export async function saveEnquiry(data: {
           source_page: data.sourcePage ? data.sourcePage.trim() : null,
           created_at: nowIso,
           updated_at: nowIso,
+          quote_amount: data.quote_amount ?? null,
+          collected_amount: data.collected_amount ?? null,
+          scheduled_date: data.scheduled_date ?? null,
+          scheduled_time: data.scheduled_time ?? null,
+          assigned_technician: data.assigned_technician ?? null,
+          internal_notes: data.internal_notes ?? null,
+          followup_date: data.followup_date ?? null,
         })
         .select('id')
         .single();
@@ -175,15 +206,12 @@ export async function saveEnquiry(data: {
       if (!error && inserted?.id) {
         return { success: true, id: inserted.id, storage: 'supabase' };
       }
-      if (error) {
-        console.warn('Supabase insert warning:', error.message);
-      }
     } catch (err) {
       console.warn('Supabase SDK write error:', err);
     }
   }
 
-  // 2. Try direct Postgres Pool
+  // 3. Postgres Pool Fallback
   try {
     await ensureEnquiriesTable();
     const insertQuery = `
@@ -212,7 +240,7 @@ export async function saveEnquiry(data: {
       return { success: true, id: res.rows[0].id, storage: 'db' };
     }
   } catch {
-    // Postgres pool optional
+    // optional
   }
 
   return { success: true, id: recordId, storage: 'fallback' };
@@ -221,11 +249,11 @@ export async function saveEnquiry(data: {
 export async function getAllEnquiries(options: {
   status?: string | null;
   search?: string | null;
+  scheduledOnly?: boolean;
 }): Promise<{ enquiries: EnquiryRecord[]; stats: EnquiryStats }> {
   let primaryEnquiries: EnquiryRecord[] = [];
   let fetchedFromCloud = false;
 
-  // 1. Try Supabase SDK
   const supabase = getSupabaseClient();
   if (supabase) {
     try {
@@ -240,11 +268,10 @@ export async function getAllEnquiries(options: {
         fetchedFromCloud = true;
       }
     } catch (err) {
-      console.warn('Supabase SDK read error:', err);
+      console.warn('Supabase read error:', err);
     }
   }
 
-  // 2. Try Postgres Pool if Supabase SDK wasn't used or failed
   if (!fetchedFromCloud) {
     try {
       await ensureEnquiriesTable();
@@ -269,7 +296,7 @@ export async function getAllEnquiries(options: {
   const fallbackRecords = readFallbackFile();
   const combinedMap = new Map<string, EnquiryRecord>();
 
-  // Add fallback records
+  // Fallback records
   for (const r of fallbackRecords) {
     const recordId = r.id || `fb_${Math.random().toString(36).substring(2, 8)}`;
     combinedMap.set(recordId, {
@@ -282,7 +309,7 @@ export async function getAllEnquiries(options: {
     });
   }
 
-  // Add cloud/DB records (overwrite or add)
+  // Cloud records
   for (const r of primaryEnquiries) {
     combinedMap.set(r.id, {
       ...r,
@@ -297,9 +324,29 @@ export async function getAllEnquiries(options: {
     return timeB - timeA;
   });
 
-  // Compute total stats
   const now = Date.now();
   const last24h = 24 * 60 * 60 * 1000;
+
+  // Calculate metrics
+  let totalRevenue = 0;
+  let pipelineValue = 0;
+  let scheduledCount = 0;
+
+  for (const r of allList) {
+    if (r.collected_amount && r.collected_amount > 0) {
+      totalRevenue += Number(r.collected_amount);
+    } else if (r.status === 'closed' && r.quote_amount && r.quote_amount > 0) {
+      totalRevenue += Number(r.quote_amount);
+    }
+
+    if (r.quote_amount && r.quote_amount > 0 && r.status !== 'closed' && r.status !== 'spam') {
+      pipelineValue += Number(r.quote_amount);
+    }
+
+    if (r.scheduled_date) {
+      scheduledCount++;
+    }
+  }
 
   const stats: EnquiryStats = {
     total: allList.length,
@@ -312,14 +359,19 @@ export async function getAllEnquiries(options: {
       const t = new Date(r.created_at).getTime();
       return !isNaN(t) && now - t < last24h;
     }).length,
+    totalRevenue,
+    pipelineValue,
+    scheduledCount,
   };
 
-  // Filter by status
+  if (options.scheduledOnly) {
+    allList = allList.filter((r) => Boolean(r.scheduled_date));
+  }
+
   if (options.status && options.status !== 'all') {
     allList = allList.filter((r) => r.status === options.status);
   }
 
-  // Filter by search query
   if (options.search && options.search.trim()) {
     const q = options.search.trim().toLowerCase();
     allList = allList.filter(
@@ -328,39 +380,34 @@ export async function getAllEnquiries(options: {
         r.phone?.toLowerCase().includes(q) ||
         r.location?.toLowerCase().includes(q) ||
         r.message?.toLowerCase().includes(q) ||
-        r.service_name?.toLowerCase().includes(q)
+        r.service_name?.toLowerCase().includes(q) ||
+        r.assigned_technician?.toLowerCase().includes(q) ||
+        r.internal_notes?.toLowerCase().includes(q)
     );
   }
 
   return { enquiries: allList, stats };
 }
 
-export async function updateEnquiryStatus(
+export async function updateEnquiryDetails(
   id: string,
-  status: 'new' | 'contacted' | 'quoted' | 'closed' | 'spam'
+  updates: Partial<EnquiryRecord>
 ): Promise<boolean> {
   let updatedInCloud = false;
+  const nowIso = new Date().toISOString();
 
   const supabase = getSupabaseClient();
   if (supabase) {
     try {
       const { error } = await supabase
         .from('enquiries')
-        .update({ status, updated_at: new Date().toISOString() })
+        .update({
+          ...updates,
+          updated_at: nowIso,
+        })
         .eq('id', id);
-      if (!error) updatedInCloud = true;
-    } catch {
-      // ignore
-    }
-  }
 
-  if (!updatedInCloud) {
-    try {
-      await query(
-        `UPDATE enquiries SET status = $1, updated_at = NOW() WHERE id = $2;`,
-        [status, id]
-      );
-      updatedInCloud = true;
+      if (!error) updatedInCloud = true;
     } catch {
       // ignore
     }
@@ -371,8 +418,7 @@ export async function updateEnquiryStatus(
   let updatedInFile = false;
   for (const r of fallbackRecords) {
     if (r.id === id || (r as any).phone === id) {
-      r.status = status;
-      r.updated_at = new Date().toISOString();
+      Object.assign(r, updates, { updated_at: nowIso });
       updatedInFile = true;
     }
   }
@@ -382,6 +428,13 @@ export async function updateEnquiryStatus(
   }
 
   return updatedInCloud || updatedInFile;
+}
+
+export async function updateEnquiryStatus(
+  id: string,
+  status: 'new' | 'contacted' | 'quoted' | 'closed' | 'spam'
+): Promise<boolean> {
+  return updateEnquiryDetails(id, { status });
 }
 
 export async function deleteEnquiry(id: string): Promise<boolean> {

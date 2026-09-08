@@ -1,5 +1,5 @@
 -- ==========================================================
--- SUPABASE DATABASE SETUP FOR CORE CUTTING WEBSITE
+-- SUPABASE DATABASE SETUP FOR CORE CUTTING WEBSITE & CRM
 -- Run this in your Supabase SQL Editor (SQL Editor -> New Query -> Run)
 -- ==========================================================
 
@@ -15,9 +15,25 @@ CREATE TABLE IF NOT EXISTS public.enquiries (
   status VARCHAR(30) NOT NULL DEFAULT 'new',
   source VARCHAR(60) DEFAULT 'web_form',
   source_page VARCHAR(255),
+  quote_amount NUMERIC(10, 2) DEFAULT NULL,
+  collected_amount NUMERIC(10, 2) DEFAULT NULL,
+  scheduled_date DATE DEFAULT NULL,
+  scheduled_time VARCHAR(50) DEFAULT NULL,
+  assigned_technician VARCHAR(100) DEFAULT NULL,
+  internal_notes TEXT DEFAULT NULL,
+  followup_date DATE DEFAULT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Optional Column Additions if table already existed
+ALTER TABLE public.enquiries ADD COLUMN IF NOT EXISTS quote_amount NUMERIC(10, 2) DEFAULT NULL;
+ALTER TABLE public.enquiries ADD COLUMN IF NOT EXISTS collected_amount NUMERIC(10, 2) DEFAULT NULL;
+ALTER TABLE public.enquiries ADD COLUMN IF NOT EXISTS scheduled_date DATE DEFAULT NULL;
+ALTER TABLE public.enquiries ADD COLUMN IF NOT EXISTS scheduled_time VARCHAR(50) DEFAULT NULL;
+ALTER TABLE public.enquiries ADD COLUMN IF NOT EXISTS assigned_technician VARCHAR(100) DEFAULT NULL;
+ALTER TABLE public.enquiries ADD COLUMN IF NOT EXISTS internal_notes TEXT DEFAULT NULL;
+ALTER TABLE public.enquiries ADD COLUMN IF NOT EXISTS followup_date DATE DEFAULT NULL;
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.enquiries ENABLE ROW LEVEL SECURITY;
@@ -57,5 +73,6 @@ CREATE POLICY "Allow delete for anon server routes"
   TO anon
   USING (true);
 
--- Create index for high-speed sorting by date
+-- Create indexes for high-speed queries
 CREATE INDEX IF NOT EXISTS idx_enquiries_created_at ON public.enquiries (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_enquiries_scheduled_date ON public.enquiries (scheduled_date);
