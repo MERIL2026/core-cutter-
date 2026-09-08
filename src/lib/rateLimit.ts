@@ -47,8 +47,14 @@ export function checkRateLimit(
   identifier: string,
   options: RateLimitOptions = {}
 ): RateLimitResult {
+  const isLocal =
+    identifier === '127.0.0.1' ||
+    identifier === '::1' ||
+    identifier === 'localhost' ||
+    process.env.NODE_ENV === 'development';
+
   const windowMs = options.windowMs ?? 15 * 60 * 1000; // 15 minutes
-  const maxRequests = options.maxRequests ?? 5; // 5 submissions per window
+  const maxRequests = options.maxRequests ?? (isLocal ? 100 : 25); // 25 submissions per window for public, 100 for local
 
   purgeStaleRecords(windowMs);
 
