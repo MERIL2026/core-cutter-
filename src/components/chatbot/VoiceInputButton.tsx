@@ -24,14 +24,14 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 }) => {
   const [voiceState, setVoiceState] = useState<VoiceState>('IDLE');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [liveAudioLevel, setLiveAudioLevel] = useState<number>(0);
 
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const finalTranscriptRef = useRef<string>('');
-  const unsubscribeAudioRef = useRef<(() => void) | null>(null);
+  const activeEngineRef = useRef<'webSpeech' | 'mediaRecorder' | null>(null);
+  const hasResultRef = useRef<boolean>(false);
 
   const updateState = (state: VoiceState) => {
     setVoiceState(state);
@@ -42,17 +42,20 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     return lang === 'gu' ? 'gu-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN';
   };
 
-  const stopAllVoice = () => {
-    if (unsubscribeAudioRef.current) {
-      unsubscribeAudioRef.current();
-      unsubscribeAudioRef.current = null;
-    }
+  const stopAllAudioTracks = () => {
     audioAnalyser.stop();
-    setLiveAudioLevel(0);
+    if (mediaStreamRef.current) {
+      try {
+        mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      } catch {}
+      mediaStreamRef.current = null;
+    }
+  };
 
+  const stopAllVoice = () => {
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.stop();
+        recognitionRef.current.abort();
       } catch {}
       recognitionRef.current = null;
     }
@@ -61,13 +64,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       try {
         mediaRecorderRef.current.stop();
       } catch {}
-      mediaRecorderRef.current = null;
     }
 
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
+    stopAllAudioTracks();
+    activeEngineRef.current = null;
   };
 
   useEffect(() => {
@@ -82,18 +82,21 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     stopSpeaking();
     stopAllVoice();
     finalTranscriptRef.current = '';
+    hasResultRef.current = false;
 
     trackEvent({ event_name: 'voice_start' });
-
     const targetLocale = getTargetLocale(language);
 
-    // Engine A: Browser Real-time Streaming SpeechRecognition (Chrome, Edge, Safari, Android)
+    // Check if Browser SpeechRecognition is available and functional
     const SpeechRecognitionClass =
       typeof window !== 'undefined'
         ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
         : null;
 
-    if (SpeechRecognitionClass) {
+    // Detect if mobile Android/iOS where SpeechRecognition often crashes or gives Google service error
+    const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+    if (SpeechRecognitionClass && !isMobile) {
       try {
         const recognition = new SpeechRecognitionClass();
         recognition.continuous = false;
@@ -101,15 +104,13 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         recognition.lang = targetLocale;
         recognition.maxAlternatives = 1;
 
-        let gotFinalResult = false;
-
         recognition.onstart = async () => {
+          activeEngineRef.current = 'webSpeech';
           updateState('LISTENING');
           try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaStreamRef.current = stream;
             await audioAnalyser.attachMediaStream(stream);
-            unsubscribeAudioRef.current = audioAnalyser.subscribe((lvl) => setLiveAudioLevel(lvl));
           } catch {}
         };
 
@@ -119,7 +120,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
               finalTranscriptRef.current = transcript;
-              gotFinalResult = true;
+              hasResultRef.current = true;
             } else {
               interimText += transcript;
             }
@@ -131,22 +132,37 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         };
 
         recognition.onerror = (event: any) => {
-          console.warn('[Speech Recognition Error]:', event.error);
-          if (event.error !== 'no-speech') {
-            fallbackToSarvamSTT();
-          } else {
-            stopAllVoice();
-            updateState('IDLE');
+          console.warn('[Browser SpeechRecognition error]:', event.error);
+          if (event.error === 'not-allowed') {
+            setErrorMessage('Microphone access denied.');
+            updateState('ERROR');
+            setTimeout(() => {
+              setErrorMessage(null);
+              updateState('IDLE');
+            }, 3000);
+            return;
+          }
+
+          // If speech recognition failed due to network or service error, seamlessly switch to Sarvam STT
+          if (!hasResultRef.current) {
+            stopAllAudioTracks();
+            recognitionRef.current = null;
+            startMediaRecorderSTT();
           }
         };
 
         recognition.onend = () => {
-          stopAllVoice();
-          if (gotFinalResult && finalTranscriptRef.current.trim()) {
+          stopAllAudioTracks();
+          recognitionRef.current = null;
+
+          if (hasResultRef.current && finalTranscriptRef.current.trim()) {
             updateState('IDLE');
             onTranscript(finalTranscriptRef.current.trim(), language, targetLocale);
+          } else if (activeEngineRef.current === 'webSpeech') {
+            // If no transcript produced by Web Speech, try MediaRecorder fallback
+            startMediaRecorderSTT();
           } else {
-            fallbackToSarvamSTT();
+            updateState('IDLE');
           }
         };
 
@@ -154,15 +170,15 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         recognition.start();
         return;
       } catch (e) {
-        console.warn('Browser SpeechRecognition start failed, switching to Sarvam fallback:', e);
+        console.warn('SpeechRecognition initialization failed, using Sarvam STT:', e);
       }
     }
 
-    // Engine B: High-Accuracy Sarvam AI STT Fallback
-    fallbackToSarvamSTT();
+    // Direct High-Quality MediaRecorder + Sarvam STT (Optimal for mobile & desktop)
+    startMediaRecorderSTT();
   };
 
-  const fallbackToSarvamSTT = async () => {
+  const startMediaRecorderSTT = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -175,10 +191,8 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
       mediaStreamRef.current = stream;
       await audioAnalyser.attachMediaStream(stream);
-      unsubscribeAudioRef.current = audioAnalyser.subscribe((lvl) => setLiveAudioLevel(lvl));
 
       audioChunksRef.current = [];
-
       let mimeType = 'audio/webm';
       if (typeof MediaRecorder !== 'undefined') {
         if (MediaRecorder.isTypeSupported('audio/webm')) {
@@ -191,13 +205,16 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       }
 
       const recorder = new MediaRecorder(stream, { mimeType });
+
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
+        if (e.data && e.data.size > 0) {
           audioChunksRef.current.push(e.data);
         }
       };
 
       recorder.onstop = async () => {
+        stopAllAudioTracks();
+
         if (audioChunksRef.current.length === 0) {
           updateState('IDLE');
           return;
@@ -208,6 +225,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
         try {
           const formData = new FormData();
+          formData.append('file', audioBlob, 'recording.webm');
           formData.append('audio', audioBlob, 'recording.webm');
           formData.append('language_code', getTargetLocale(language));
 
@@ -217,7 +235,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
           });
 
           if (!res.ok) {
-            throw new Error('STT transcription failed');
+            throw new Error(`Server returned status ${res.status}`);
           }
 
           const data = await res.json();
@@ -230,42 +248,54 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
                 : 'en';
 
             updateState('IDLE');
-            onTranscript(data.text.trim(), detectedLang, data.detected_language_code);
+            onTranscript(data.text.trim(), detectedLang, data.language_code);
           } else {
-            updateState('IDLE');
+            setErrorMessage('No voice detected. Please speak closer to the mic.');
+            updateState('ERROR');
+            setTimeout(() => {
+              setErrorMessage(null);
+              updateState('IDLE');
+            }, 3000);
           }
         } catch (err: any) {
           console.error('Sarvam STT failed:', err);
-          setErrorMessage('Voice not detected clearly. Please try speaking closer to mic.');
+          setErrorMessage('Voice processing error. Please try again.');
           updateState('ERROR');
           setTimeout(() => {
             setErrorMessage(null);
             updateState('IDLE');
-          }, 3500);
+          }, 3000);
         }
       };
 
+      activeEngineRef.current = 'mediaRecorder';
       recorder.start(100);
       mediaRecorderRef.current = recorder;
       updateState('LISTENING');
     } catch (micErr: any) {
-      console.error('Microphone access denied:', micErr);
-      setErrorMessage('Microphone access denied. Please enable mic permissions.');
+      console.error('Microphone error:', micErr);
+      setErrorMessage('Microphone access denied. Please grant permission.');
       updateState('ERROR');
       setTimeout(() => {
         setErrorMessage(null);
         updateState('IDLE');
-      }, 4000);
+      }, 3500);
     }
   };
 
   const handleToggle = () => {
     if (voiceState === 'LISTENING') {
-      stopAllVoice();
-      updateState('IDLE');
-      const text = finalTranscriptRef.current.trim();
-      if (text) {
-        onTranscript(text, language, getTargetLocale(language));
+      if (activeEngineRef.current === 'webSpeech' && recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      } else if (activeEngineRef.current === 'mediaRecorder' && mediaRecorderRef.current) {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {}
+      } else {
+        stopAllVoice();
+        updateState('IDLE');
       }
     } else if (voiceState === 'IDLE' || voiceState === 'ERROR') {
       startListening();
@@ -276,33 +306,33 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   const isProcessing = voiceState === 'PROCESSING';
 
   const titleText = {
-    en: isListening ? 'Listening live... Click when done' : isProcessing ? 'Thinking...' : 'Click to Speak (English, Hindi, Gujarati)',
-    gu: isListening ? 'સાંભળી રહ્યા છીએ... બોલીને ક્લિક કરો' : isProcessing ? 'વિચારી રહ્યા છીએ...' : 'બોલવા માટે ક્લિક કરો',
-    hi: isListening ? 'सुन रहे हैं... बोलने के बाद क्लिक करें' : isProcessing ? 'सोच रहे हैं...' : 'बोलने के लिए क्लिक करें',
+    en: isListening ? 'Listening live... Click when done' : isProcessing ? 'Processing voice...' : 'Click to Speak (English, Hindi, Gujarati)',
+    gu: isListening ? 'સાંભળી રહ્યા છીએ... બોલીને ક્લિક કરો' : isProcessing ? 'પ્રોસેસિંગ...' : 'બોલવા માટે ક્લિક કરો',
+    hi: isListening ? 'सुन रहे हैं... बोलने के बाद क्लिक करें' : isProcessing ? 'प्रोसेसिंग...' : 'बोलने के लिए क्लिक करें',
   }[language];
 
   return (
-    <div className="relative inline-flex items-center">
+    <div className="relative inline-flex items-center shrink-0">
       <button
         type="button"
         onClick={handleToggle}
         disabled={disabled || isProcessing}
         title={titleText}
         aria-label={isListening ? 'Stop voice recording' : 'Start voice conversation'}
-        className={`relative p-2.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:ring-offset-2 focus:ring-offset-[#12151B] ${
+        className={`relative h-9 w-9 flex items-center justify-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:ring-offset-2 focus:ring-offset-[#12151B] ${
           isListening
-            ? 'bg-gradient-to-r from-red-600 to-brand-orange text-white shadow-[0_0_24px_rgba(250,74,20,0.85)] scale-110 ring-2 ring-brand-orange animate-pulse'
+            ? 'bg-gradient-to-r from-red-600 to-brand-orange text-white shadow-[0_0_20px_rgba(250,74,20,0.85)] scale-105 ring-2 ring-brand-orange animate-pulse'
             : isProcessing
             ? 'bg-[#1E2430] text-amber-400 cursor-wait'
-            : 'bg-[#181E28] hover:bg-brand-orange/20 text-brand-orange border border-slate-700/80 hover:border-brand-orange/80 active:scale-95'
+            : 'bg-[#181E28] hover:bg-brand-orange/20 text-brand-orange border border-slate-700/80 hover:border-brand-orange active:scale-95'
         }`}
       >
         {isListening ? (
           <span className="relative flex items-center justify-center">
-            <Square className="h-4 w-4 fill-white text-white" />
-            <span className="absolute -top-1.5 -right-1.5 flex h-3 w-3">
+            <Square className="h-3.5 w-3.5 fill-white text-white" />
+            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-orange opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-white shadow-xs" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white shadow-xs" />
             </span>
           </span>
         ) : isProcessing ? (
@@ -312,19 +342,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         )}
       </button>
 
-      {/* Floating Status Bubble while Speaking */}
-      {isListening && (
-        <div className="absolute bottom-full mb-3 left-0 whitespace-nowrap px-3 py-1.5 bg-[#12151B]/95 backdrop-blur-md text-white text-xs rounded-xl shadow-2xl border border-brand-orange/50 flex items-center space-x-2 z-50 animate-fade-in-up pointer-events-none">
-          <span className="h-2 w-2 rounded-full bg-brand-orange animate-ping" />
-          <span className="font-semibold text-brand-orange">Listening...</span>
-          <span className="text-[10px] text-gray-300">Speak now</span>
-        </div>
-      )}
-
-      {/* Floating Error Tooltip */}
+      {/* Clean In-Line Floating Error Notification */}
       {errorMessage && (
-        <div className="absolute bottom-full mb-2.5 left-0 w-64 p-2.5 bg-[#12151B] text-white text-xs rounded-xl shadow-2xl border border-brand-orange/40 flex items-start space-x-2 z-50 animate-fade-in-up">
-          <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+        <div className="absolute bottom-full mb-3 left-0 w-56 p-2 bg-[#12151B]/95 backdrop-blur-md text-white text-[11px] rounded-xl shadow-2xl border border-brand-orange/50 flex items-start space-x-1.5 z-50 animate-fade-in-up pointer-events-none">
+          <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
           <span className="leading-tight text-gray-200">{errorMessage}</span>
         </div>
       )}

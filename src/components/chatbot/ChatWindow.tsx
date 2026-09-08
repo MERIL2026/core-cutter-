@@ -281,7 +281,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
       : 'idle';
 
   return (
-    <div className="flex flex-col h-[600px] max-h-[85vh] w-full sm:w-[420px] bg-[#0E1218] text-gray-100 rounded-3xl shadow-[0_24px_64px_rgba(0,0,0,0.85)] border border-slate-800 overflow-hidden animate-chat-window transition-all z-50">
+    <div className="flex flex-col h-[calc(100dvh-90px)] sm:h-[580px] max-h-[620px] w-full sm:w-[420px] bg-[#0E1218] text-gray-100 rounded-2xl sm:rounded-3xl shadow-[0_24px_64px_rgba(0,0,0,0.85)] border border-slate-800 overflow-hidden animate-chat-window transition-all">
       {/* Header with Priya's Identity - Styled to Match Website Dark Hero & Navbar */}
       <div className="bg-[#12151B] px-4 py-3 flex flex-col border-b border-slate-800 relative overflow-hidden">
         {/* Subtle Brand Orange & Amber Glow */}

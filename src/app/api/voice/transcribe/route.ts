@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
-      const file = formData.get('file') as File | null;
+      const file = (formData.get('file') || formData.get('audio')) as File | null;
       if (!file) {
         return NextResponse.json(
           { error: 'No audio file provided in request', code: 'INVALID_AUDIO' },
