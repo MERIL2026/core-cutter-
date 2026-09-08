@@ -1,38 +1,36 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ShieldAlert,
   Phone,
   MessageSquare,
   Search,
-  Filter,
   RefreshCw,
   LogOut,
-  CheckCircle,
   Clock,
   MapPin,
   FileText,
-  User,
-  Download,
   AlertCircle,
   Sparkles,
   Plus,
   Trash2,
   X,
   Send,
-  Check,
   Calendar,
-  DollarSign,
   Calculator,
-  Tag,
-  Share2,
   Printer,
-  ChevronRight,
   Bell,
   Wrench,
   Edit3,
+  QrCode,
+  Star,
+  Map,
+  Camera,
+  Layers,
+  Copy,
+  Check,
+  Share2,
 } from 'lucide-react';
 import { defaultBusinessProfile } from '@/content/business';
 
@@ -58,6 +56,8 @@ interface Enquiry {
   assigned_technician?: string | null;
   internal_notes?: string | null;
   followup_date?: string | null;
+  site_photos?: string[] | null;
+  chat_transcript?: string | null;
 }
 
 interface Stats {
@@ -71,6 +71,15 @@ interface Stats {
   totalRevenue: number;
   pipelineValue: number;
   scheduledCount: number;
+}
+
+interface DiamondBit {
+  id: string;
+  size: string;
+  application: string;
+  holesCut: number;
+  maxLifeHoles: number;
+  status: 'optimal' | 'good' | 'warning' | 'replace';
 }
 
 export default function AdminDashboardPage() {
@@ -92,12 +101,12 @@ export default function AdminDashboardPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'list' | 'dispatch' | 'equipment'>('list');
 
   // 1. Add Lead Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
-  const [modalSuccess, setModalSuccess] = useState<string | null>(null);
   const [newEnquiryData, setNewEnquiryData] = useState({
     name: '',
     phone: '',
@@ -118,8 +127,6 @@ export default function AdminDashboardPage() {
     dustCatchingCharge: 200,
     scaffoldingCharge: 0,
     discountAmount: 0,
-    includeGst: false,
-    customNote: 'Diamond core cutting with water & dust protection.',
   });
 
   // 3. WhatsApp Quick Templates Modal
@@ -146,6 +153,35 @@ export default function AdminDashboardPage() {
     followupDate: '',
     collectedAmount: 0,
   });
+
+  // 6. UPI QR Code Modal
+  const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
+  const [upiEnquiry, setUpiEnquiry] = useState<Enquiry | null>(null);
+  const [upiAmount, setUpiAmount] = useState<number>(2500);
+  const [upiCopied, setUpiCopied] = useState(false);
+
+  // 7. Google 5-Star Review Request Modal
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewEnquiry, setReviewEnquiry] = useState<Enquiry | null>(null);
+
+  // 8. Site Photos Modal
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [photoEnquiry, setPhotoEnquiry] = useState<Enquiry | null>(null);
+  const [photoUrlInput, setPhotoUrlInput] = useState('');
+
+  // 9. AI Transcript Modal
+  const [isTranscriptModalOpen, setIsTranscriptModalOpen] = useState(false);
+  const [transcriptEnquiry, setTranscriptEnquiry] = useState<Enquiry | null>(null);
+
+  // 10. Diamond Bits State
+  const [diamondBits, setDiamondBits] = useState<DiamondBit[]>([
+    { id: 'bit-1', size: '2 Inch (50mm)', application: 'Plumbing / Drain pipe', holesCut: 42, maxLifeHoles: 180, status: 'good' },
+    { id: 'bit-2', size: '3 Inch (75mm)', application: 'Split AC Copper & Drain (Most Used)', holesCut: 148, maxLifeHoles: 200, status: 'warning' },
+    { id: 'bit-3', size: '4 Inch (100mm)', application: 'Toilet / Waste Soil Pipe', holesCut: 88, maxLifeHoles: 160, status: 'good' },
+    { id: 'bit-4', size: '5 Inch (125mm)', application: 'Kitchen Hood / Commercial HVAC', holesCut: 26, maxLifeHoles: 140, status: 'optimal' },
+    { id: 'bit-5', size: '6 Inch (150mm)', application: 'Heavy Chimney & Ventilation', holesCut: 65, maxLifeHoles: 120, status: 'good' },
+    { id: 'bit-6', size: '8 Inch (200mm)', application: 'RCC Bridge & Industrial Slabs', holesCut: 14, maxLifeHoles: 100, status: 'optimal' },
+  ]);
 
   const fetchEnquiries = useCallback(async (isBackground = false) => {
     if (!isBackground) setIsLoading(true);
@@ -216,7 +252,7 @@ export default function AdminDashboardPage() {
     return handleUpdateField(id, { status });
   };
 
-  const handleExportCSV = (exportAll = false) => {
+  const handleExportCSV = () => {
     if (enquiries.length === 0) return;
     const headers = ['Date', 'Name', 'Phone', 'Service', 'Location', 'Status', 'Quoted', 'Paid'];
     const rows = enquiries.map((e) => [
@@ -261,18 +297,9 @@ export default function AdminDashboardPage() {
   const handleCreateEnquiry = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError(null);
-    setModalSuccess(null);
 
-    if (!newEnquiryData.name.trim()) {
-      setModalError('Please enter customer name.');
-      return;
-    }
-    if (!newEnquiryData.phone.trim() || newEnquiryData.phone.replace(/\D/g, '').length < 7) {
-      setModalError('Please enter a valid phone number (at least 7 digits).');
-      return;
-    }
-    if (!newEnquiryData.location.trim()) {
-      setModalError('Please enter a location / area.');
+    if (!newEnquiryData.name.trim() || !newEnquiryData.phone.trim()) {
+      setModalError('Name and Phone are required.');
       return;
     }
 
@@ -287,7 +314,6 @@ export default function AdminDashboardPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setModalSuccess('Enquiry logged successfully!');
         setNewEnquiryData({
           name: '',
           phone: '',
@@ -296,11 +322,8 @@ export default function AdminDashboardPage() {
           location: defaultBusinessProfile.city,
           message: '',
         });
+        setIsAddModalOpen(false);
         fetchEnquiries(false);
-        setTimeout(() => {
-          setIsAddModalOpen(false);
-          setModalSuccess(null);
-        }, 800);
       } else {
         setModalError(data.error || 'Failed to create enquiry');
       }
@@ -325,7 +348,6 @@ export default function AdminDashboardPage() {
   const subtotal = quoteDetails.ratePerHole * quoteDetails.holesCount + quoteDetails.dustCatchingCharge + quoteDetails.scaffoldingCharge;
   const quoteTotal = Math.max(0, subtotal - quoteDetails.discountAmount);
 
-  // Save Quotation to Lead & update status
   const handleSaveQuotation = async () => {
     if (!quoteEnquiry) return;
     await handleUpdateField(quoteEnquiry.id, {
@@ -335,7 +357,6 @@ export default function AdminDashboardPage() {
     setIsQuoteModalOpen(false);
   };
 
-  // Generate Formal PDF Quotation
   const handlePrintQuotationPDF = () => {
     if (!quoteEnquiry) return;
     const printWindow = window.open('', '_blank');
@@ -360,7 +381,6 @@ export default function AdminDashboardPage() {
           .total-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: 600; }
           .grand-total { font-size: 18px; font-weight: 900; color: #ea580c; border-top: 2px solid #cbd5e1; padding-top: 8px; margin-top: 8px; }
           .terms { margin-top: 30px; font-size: 11px; color: #64748b; background: #fff7ed; border: 1px solid #fed7aa; padding: 12px; border-radius: 6px; }
-          @media print { .no-print { display: none; } }
         </style>
       </head>
       <body>
@@ -403,7 +423,7 @@ export default function AdminDashboardPage() {
           </thead>
           <tbody>
             <tr>
-              <td><strong>Diamond Core Hole Cutting</strong><br/><span style="font-size: 11px; color: #64748b;">Size: ${quoteDetails.holeSize} in ${quoteDetails.material} (Zero vibration, smooth finish)</span></td>
+              <td><strong>Diamond Core Hole Cutting</strong><br/><span style="font-size: 11px; color: #64748b;">Size: ${quoteDetails.holeSize} in ${quoteDetails.material} (Zero vibration)</span></td>
               <td style="text-align: center; font-weight: bold;">${quoteDetails.holesCount}</td>
               <td style="text-align: right;">₹${quoteDetails.ratePerHole}</td>
               <td style="text-align: right; font-weight: bold;">₹${quoteDetails.ratePerHole * quoteDetails.holesCount}</td>
@@ -415,13 +435,6 @@ export default function AdminDashboardPage() {
               <td style="text-align: right;">₹${quoteDetails.dustCatchingCharge}</td>
               <td style="text-align: right; font-weight: bold;">₹${quoteDetails.dustCatchingCharge}</td>
             </tr>` : ''}
-            ${quoteDetails.scaffoldingCharge > 0 ? `
-            <tr>
-              <td>High-Reach / Scaffolding Setup Charge</td>
-              <td style="text-align: center;">1 Site</td>
-              <td style="text-align: right;">₹${quoteDetails.scaffoldingCharge}</td>
-              <td style="text-align: right; font-weight: bold;">₹${quoteDetails.scaffoldingCharge}</td>
-            </tr>` : ''}
           </tbody>
         </table>
 
@@ -432,19 +445,12 @@ export default function AdminDashboardPage() {
         </div>
 
         <div class="terms">
-          <strong>Terms & Site Prerequisites:</strong>
+          <strong>Terms:</strong>
           <ul style="margin: 5px 0 0 15px; padding: 0;">
-            <li>Customer to provide standard single-phase 230V (15A) electric point and regular water tap supply near cutting point.</li>
-            <li>No structural beam or rebar cuts will be performed without homeowner/engineer consent.</li>
-            <li>Estimate valid for 15 days from date of issue.</li>
+            <li>Customer to provide standard single-phase 230V electric point and water tap connection.</li>
+            <li>No structural beam cuts performed without owner/engineer consent.</li>
           </ul>
         </div>
-
-        <div style="margin-top: 40px; display: flex; justify-content: space-between; font-size: 11px; color: #64748b;">
-          <div>Prepared By: <strong>Management Office</strong></div>
-          <div style="border-top: 1px solid #94a3b8; padding-top: 5px; width: 180px; text-align: center;">Authorized Signature</div>
-        </div>
-
         <script>window.onload = function() { setTimeout(function() { window.print(); }, 400); };</script>
       </body>
       </html>
@@ -454,7 +460,7 @@ export default function AdminDashboardPage() {
     printWindow.document.close();
   };
 
-  // Quick WhatsApp Template Generator
+  // WhatsApp Quick Reply Modal
   const openWhatsAppModal = (enquiry: Enquiry) => {
     setWaEnquiry(enquiry);
     updateWaMessage('gu', enquiry);
@@ -507,7 +513,53 @@ export default function AdminDashboardPage() {
     setIsWaModalOpen(false);
   };
 
-  // Job Scheduling Save
+  // UPI QR Generator
+  const openUpiModal = (enquiry: Enquiry) => {
+    setUpiEnquiry(enquiry);
+    setUpiAmount(enquiry.quote_amount || enquiry.collected_amount || 2500);
+    setUpiCopied(false);
+    setIsUpiModalOpen(true);
+  };
+
+  const upiId = '9876543210@upi'; // Default business UPI ID
+  const upiPayUrl = `upi://pay?pa=${upiId}&pn=Diamond+Core+Cutting&am=${upiAmount}&cu=INR&tn=CoreCutting_${upiEnquiry?.name.replace(/\s+/g, '_') || 'Job'}`;
+  const upiQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiPayUrl)}`;
+
+  // Google 5-Star Review
+  const openReviewModal = (enquiry: Enquiry) => {
+    setReviewEnquiry(enquiry);
+    setIsReviewModalOpen(true);
+  };
+
+  const handleSendGoogleReview = (lang: 'gu' | 'hi' | 'en') => {
+    if (!reviewEnquiry) return;
+    const cleanPhone = reviewEnquiry.phone.replace(/\D/g, '');
+    const reviewLink = 'https://g.page/r/your-google-business-review/review';
+
+    let text = '';
+    if (lang === 'gu') {
+      text = `નમસ્તે ${reviewEnquiry.name} જી! 🙏\nઅમારી ડાયમંડ કોર કટીંગ સેવા પસંદ કરવા બદલ આભાર.\nજો તમને અમારું કામ અને સફાઈ ગમી હોય, તો કૃપા કરીને અમને ગૂગલ પર 5-Star રેટિંગ આપી સપોર્ટ કરો:\n⭐ ${reviewLink}\n\nઆપનો ખૂબ ખૂબ આભાર!`;
+    } else if (lang === 'hi') {
+      text = `नमस्ते ${reviewEnquiry.name} जी! 🙏\nडायमंड कोर कटिंग सर्विस लेने के लिए धन्यवाद।\nयदि आपको हमारा काम और फिनिशिंग पसंद आई हो, तो कृपया हमें गूगल पर 5-Star रेटिंग देकर सपोर्ट करें:\n⭐ ${reviewLink}\n\nआपका बहुत धन्यवाद!`;
+    } else {
+      text = `Hello ${reviewEnquiry.name}! 🙏\nThank you for choosing ${defaultBusinessProfile.business_name}.\nIf you liked our zero-vibration core cutting work, please take 10 seconds to give us a 5-Star review on Google:\n⭐ ${reviewLink}\n\nThank you!`;
+    }
+
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    setIsReviewModalOpen(false);
+  };
+
+  // Photo Attachment Save
+  const handleAddPhoto = async () => {
+    if (!photoEnquiry || !photoUrlInput.trim()) return;
+    const currentPhotos = photoEnquiry.site_photos || [];
+    const updated = [...currentPhotos, photoUrlInput.trim()];
+    await handleUpdateField(photoEnquiry.id, { site_photos: updated });
+    setPhotoUrlInput('');
+    setPhotoEnquiry({ ...photoEnquiry, site_photos: updated });
+  };
+
+  // Schedule Save
   const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!scheduleEnquiry) return;
@@ -521,7 +573,7 @@ export default function AdminDashboardPage() {
     setIsScheduleModalOpen(false);
   };
 
-  // Notes & Payment Save
+  // Notes Save
   const handleSaveNotes = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notesEnquiry) return;
@@ -551,50 +603,24 @@ export default function AdminDashboardPage() {
 
     const tableRowsHtml = enquiries
       .map((e, index) => {
-        const cleanPhone = e.phone || 'N/A';
         const dateFormatted = new Date(e.created_at).toLocaleString('en-IN', {
           timeZone: 'Asia/Kolkata',
           day: '2-digit',
           month: 'short',
-          year: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
         });
 
-        const statusColor =
-          e.status === 'new'
-            ? '#ea580c'
-            : e.status === 'contacted'
-            ? '#2563eb'
-            : e.status === 'quoted'
-            ? '#d97706'
-            : e.status === 'closed'
-            ? '#16a34a'
-            : '#dc2626';
-
         return `
           <tr style="border-bottom: 1px solid #e2e8f0; background: ${index % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-            <td style="padding: 10px 8px; font-weight: 700; color: #0f172a; font-size: 11px;">#${index + 1}</td>
-            <td style="padding: 10px 8px; font-size: 11px; color: #475569; white-space: nowrap;">${dateFormatted}</td>
-            <td style="padding: 10px 8px; font-weight: 700; color: #0f172a; font-size: 12px;">${e.name}</td>
-            <td style="padding: 10px 8px; font-size: 12px; font-weight: 600; color: #1e293b; white-space: nowrap;">
-              ${cleanPhone}
-              ${e.whatsapp_preference ? '<span style="display:inline-block; margin-left:4px; font-size:9px; background:#dcfce7; color:#166534; padding:2px 5px; border-radius:4px; font-weight:700;">WA</span>' : ''}
-            </td>
-            <td style="padding: 10px 8px; font-size: 11px; color: #334155; font-weight: 600;">${e.service_name || 'General Core Cutting'}</td>
-            <td style="padding: 10px 8px; font-size: 11px; color: #475569;">${e.location}</td>
-            <td style="padding: 10px 8px; text-align: center;">
-              <span style="display: inline-block; padding: 3px 8px; border-radius: 9999px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #ffffff; background: ${statusColor};">
-                ${e.status}
-              </span>
-            </td>
-            <td style="padding: 10px 8px; font-size: 11px; font-weight: bold; color: #0f172a;">
-              ${e.collected_amount ? `₹${e.collected_amount} (Paid)` : e.quote_amount ? `₹${e.quote_amount} (Quoted)` : '-'}
-            </td>
-            <td style="padding: 10px 8px; font-size: 11px; color: #64748b; max-width: 200px;">
-              ${e.scheduled_date ? `📅 <strong>${e.scheduled_date} (${e.scheduled_time || ''})</strong><br/>` : ''}
-              ${e.message || 'No additional note'}
-            </td>
+            <td style="padding: 8px; font-weight: bold;">#${index + 1}</td>
+            <td style="padding: 8px;">${dateFormatted}</td>
+            <td style="padding: 8px; font-weight: bold;">${e.name}</td>
+            <td style="padding: 8px;">${e.phone}</td>
+            <td style="padding: 8px;">${e.service_name || 'Core Cutting'}</td>
+            <td style="padding: 8px;">${e.location}</td>
+            <td style="padding: 8px; font-weight: bold; text-transform: uppercase;">${e.status}</td>
+            <td style="padding: 8px; font-weight: bold;">${e.collected_amount ? `₹${e.collected_amount} (Paid)` : e.quote_amount ? `₹${e.quote_amount}` : '-'}</td>
           </tr>
         `;
       })
@@ -604,58 +630,25 @@ export default function AdminDashboardPage() {
       <!DOCTYPE html>
       <html>
       <head>
-        <meta charset="UTF-8" />
-        <title>Core_Cutting_Leads_Report_${new Date().toISOString().split('T')[0]}</title>
+        <title>Core_Cutting_Leads_Report</title>
         <style>
-          @page { size: A4 landscape; margin: 10mm 12mm 12mm 12mm; }
-          * { box-sizing: border-box; print-color-adjust: exact !important; }
+          @page { size: A4 landscape; margin: 12mm; }
           body { font-family: -apple-system, sans-serif; color: #0f172a; margin: 0; padding: 20px; font-size: 12px; }
-          .header-card { background: #0f172a; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-          .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px; }
-          .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; text-align: center; }
-          table { width: 100%; border-collapse: collapse; font-size: 11px; }
-          th { background: #0f172a; color: white; padding: 10px 8px; text-align: left; font-size: 10px; text-transform: uppercase; }
-          @media print { .no-print { display: none !important; } body { padding: 0; } }
+          .header { background: #0f172a; color: white; padding: 15px 20px; border-radius: 8px; display: flex; justify-content: space-between; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
+          th { background: #0f172a; color: white; padding: 8px; text-align: left; }
         </style>
       </head>
       <body>
-        <div class="header-card">
-          <div>
-            <h1 style="font-size: 20px; margin: 0;">${defaultBusinessProfile.business_name} • CRM Report</h1>
-            <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 0 0;">Diamond Core Cutting & RCC Drilling Services</p>
-          </div>
-          <div style="text-align: right; font-size: 11px;">
-            <div>Generated: <strong>${generatedAt}</strong></div>
-            <div style="color: #94a3b8;">Revenue: <strong>₹${stats.totalRevenue.toLocaleString('en-IN')}</strong> | Records: <strong>${enquiries.length}</strong></div>
-          </div>
+        <div class="header">
+          <div><h2 style="margin:0;">${defaultBusinessProfile.business_name} • CRM Report</h2></div>
+          <div>Revenue: <strong>₹${stats.totalRevenue.toLocaleString('en-IN')}</strong> | Generated: ${generatedAt}</div>
         </div>
-
-        <div class="kpi-grid">
-          <div class="kpi-box"><div style="font-size: 9px; color: #64748b; font-weight: bold;">TOTAL LEADS</div><div style="font-size: 18px; font-weight: 900;">${stats.total}</div></div>
-          <div class="kpi-box" style="border-color: #ea580c; background: #fff7ed;"><div style="font-size: 9px; color: #ea580c; font-weight: bold;">NEW LEADS</div><div style="font-size: 18px; font-weight: 900; color: #ea580c;">${stats.new}</div></div>
-          <div class="kpi-box"><div style="font-size: 9px; color: #2563eb; font-weight: bold;">SCHEDULED</div><div style="font-size: 18px; font-weight: 900; color: #2563eb;">${stats.scheduledCount}</div></div>
-          <div class="kpi-box"><div style="font-size: 9px; color: #d97706; font-weight: bold;">PIPELINE QUOTED</div><div style="font-size: 18px; font-weight: 900; color: #d97706;">₹${stats.pipelineValue.toLocaleString('en-IN')}</div></div>
-          <div class="kpi-box" style="border-color: #16a34a; background: #f0fdf4;"><div style="font-size: 9px; color: #16a34a; font-weight: bold;">TOTAL EARNINGS</div><div style="font-size: 18px; font-weight: 900; color: #16a34a;">₹${stats.totalRevenue.toLocaleString('en-IN')}</div></div>
-          <div class="kpi-box"><div style="font-size: 9px; color: #7c3aed; font-weight: bold;">TODAY</div><div style="font-size: 18px; font-weight: 900; color: #7c3aed;">${stats.today}</div></div>
-        </div>
-
         <table>
           <thead>
-            <tr>
-              <th>#</th>
-              <th>Date & Time</th>
-              <th>Customer Name</th>
-              <th>Phone</th>
-              <th>Service</th>
-              <th>Location</th>
-              <th style="text-align: center;">Status</th>
-              <th>Value</th>
-              <th>Details & Notes</th>
-            </tr>
+            <tr><th>#</th><th>Date</th><th>Name</th><th>Phone</th><th>Service</th><th>Location</th><th>Status</th><th>Value</th></tr>
           </thead>
-          <tbody>
-            ${tableRowsHtml}
-          </tbody>
+          <tbody>${tableRowsHtml}</tbody>
         </table>
         <script>window.onload = function() { setTimeout(function() { window.print(); }, 400); };</script>
       </body>
@@ -666,26 +659,17 @@ export default function AdminDashboardPage() {
     printWindow.document.close();
   };
 
-  const getStatusBadge = (status: Enquiry['status']) => {
-    switch (status) {
-      case 'new':
-        return 'bg-brand-orange/20 text-brand-orange border-brand-orange/40 font-bold';
-      case 'contacted':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/40 font-bold';
-      case 'quoted':
-        return 'bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold';
-      case 'closed':
-        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold';
-      case 'spam':
-        return 'bg-red-500/20 text-red-400 border-red-500/40';
-      default:
-        return 'bg-slate-800 text-slate-300 border-slate-700';
-    }
-  };
+  // Grouping enquiries by Location for Area Dispatch Map
+  const locationClusters: Record<string, Enquiry[]> = {};
+  enquiries.forEach((e) => {
+    const loc = e.location.split(',')[0].trim() || 'General Area';
+    if (!locationClusters[loc]) locationClusters[loc] = [];
+    locationClusters[loc].push(e);
+  });
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-white flex flex-col">
-      {/* Top Header Navbar */}
+      {/* Header */}
       <header className="bg-[#12151B] border-b border-slate-800 px-4 sm:px-6 py-4 sticky top-0 z-30 shadow-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center space-x-3">
@@ -698,14 +682,44 @@ export default function AdminDashboardPage() {
                   {defaultBusinessProfile.business_name}
                 </h1>
                 <span className="px-2 py-0.5 rounded-full bg-brand-orange/20 border border-brand-orange/40 text-[10px] font-black text-brand-orange uppercase">
-                  CRM Pro
+                  CRM Pro Suite
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Lead Management, Quotations &amp; Job Dispatch</p>
+              <p className="text-xs text-slate-400">Quotes, UPI Payments, Area Dispatch &amp; Bit Health</p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* View Switcher Tabs */}
+            <div className="hidden lg:flex bg-[#090C11] p-1 rounded-xl border border-slate-800 space-x-1">
+              <button
+                onClick={() => setActiveView('list')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  activeView === 'list' ? 'bg-brand-orange text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                📋 Leads List
+              </button>
+              <button
+                onClick={() => setActiveView('dispatch')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
+                  activeView === 'dispatch' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Map className="h-3.5 w-3.5" />
+                <span>🗺️ Area Dispatch</span>
+              </button>
+              <button
+                onClick={() => setActiveView('equipment')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
+                  activeView === 'equipment' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                <span>🛠️ Bit Tracker</span>
+              </button>
+            </div>
+
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-orange-hover hover:to-amber-600 text-xs font-black text-white shadow-orange-glow transition-all active:scale-95"
@@ -717,25 +731,23 @@ export default function AdminDashboardPage() {
             <button
               onClick={handleExportPDF}
               disabled={enquiries.length === 0}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-xs font-black text-red-300 hover:text-white transition-all disabled:opacity-40 active:scale-95"
-              title="Download official PDF report of leads"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-xs font-black text-red-300 hover:text-white transition-all disabled:opacity-40"
+              title="Download official PDF report"
             >
               <FileText className="h-4 w-4 text-red-400" />
-              <span className="hidden md:inline">Download PDF Report</span>
-              <span className="md:hidden">PDF</span>
+              <span className="hidden md:inline">PDF Report</span>
             </button>
 
             <button
               onClick={() => fetchEnquiries(false)}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-[#181E28] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-all"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-[#181E28] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin text-brand-orange' : ''}`} />
-              <span className="hidden lg:inline">Refresh</span>
             </button>
 
             <button
               onClick={handleLogout}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400 text-xs font-bold transition-all"
+              className="p-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -745,7 +757,7 @@ export default function AdminDashboardPage() {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex-1 space-y-6">
-        {/* KPI Dashboard Grid */}
+        {/* KPI Summary Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           <div className="bg-[#12151B] border border-slate-800 rounded-2xl p-4 shadow-sm">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Inquiries</span>
@@ -761,7 +773,7 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="bg-[#12151B] border border-blue-500/40 rounded-2xl p-4 shadow-sm">
-            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Scheduled Jobs</span>
+            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Scheduled Sites</span>
             <div className="text-2xl font-black text-blue-400 mt-1">{stats.scheduledCount}</div>
           </div>
 
@@ -771,7 +783,7 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="bg-[#12151B] border border-emerald-500/40 rounded-2xl p-4 shadow-sm bg-gradient-to-br from-[#12151B] to-emerald-950/20">
-            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Total Revenue</span>
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Collected Revenue</span>
             <div className="text-2xl font-black text-emerald-400 mt-1">₹{stats.totalRevenue.toLocaleString('en-IN')}</div>
           </div>
 
@@ -781,316 +793,738 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Filter Tabs & Search Bar */}
-        <div className="bg-[#12151B] border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row gap-3 items-center justify-between shadow-sm">
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto no-scrollbar pb-1 md:pb-0">
-            {[
-              { key: 'all', label: `All (${stats.total})` },
-              { key: 'new', label: `New (${stats.new})` },
-              { key: 'scheduled', label: `📅 Scheduled (${stats.scheduledCount})` },
-              { key: 'quoted', label: `Quoted (${stats.quoted})` },
-              { key: 'closed', label: `Closed (${stats.closed})` },
-              { key: 'spam', label: 'Spam' },
-            ].map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setStatusFilter(t.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                  statusFilter === t.key
-                    ? 'bg-brand-orange text-white shadow-orange-glow'
-                    : 'bg-[#181E28] text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="relative w-full md:w-72">
-            <Search className="h-4 w-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, phone, area, technician..."
-              className="w-full pl-9 pr-4 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-brand-orange"
-            />
-          </div>
+        {/* Mobile View Switcher */}
+        <div className="flex lg:hidden bg-[#12151B] p-1.5 rounded-2xl border border-slate-800 space-x-1">
+          <button
+            onClick={() => setActiveView('list')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold ${
+              activeView === 'list' ? 'bg-brand-orange text-white' : 'text-slate-400'
+            }`}
+          >
+            📋 Leads
+          </button>
+          <button
+            onClick={() => setActiveView('dispatch')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold ${
+              activeView === 'dispatch' ? 'bg-blue-600 text-white' : 'text-slate-400'
+            }`}
+          >
+            🗺️ Dispatch
+          </button>
+          <button
+            onClick={() => setActiveView('equipment')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold ${
+              activeView === 'equipment' ? 'bg-amber-600 text-white' : 'text-slate-400'
+            }`}
+          >
+            🛠️ Bit Life
+          </button>
         </div>
 
-        {/* Enquiries Cards List */}
-        <div className="space-y-4">
-          {isLoading && enquiries.length === 0 ? (
-            <div className="bg-[#12151B] border border-slate-800 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-3">
-              <RefreshCw className="h-8 w-8 text-brand-orange animate-spin" />
-              <p className="text-sm font-medium">Loading customer records...</p>
-            </div>
-          ) : enquiries.length === 0 ? (
-            <div className="bg-[#12151B] border border-slate-800 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-4">
-              <div className="h-14 w-14 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
-                <FileText className="h-7 w-7" />
+        {/* ================================================================= */}
+        {/* VIEW 1: LEADS LIST VIEW */}
+        {/* ================================================================= */}
+        {activeView === 'list' && (
+          <div className="space-y-4">
+            {/* Filter Tabs & Search Bar */}
+            <div className="bg-[#12151B] border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row gap-3 items-center justify-between shadow-sm">
+              <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto no-scrollbar pb-1 md:pb-0">
+                {[
+                  { key: 'all', label: `All (${stats.total})` },
+                  { key: 'new', label: `New (${stats.new})` },
+                  { key: 'scheduled', label: `📅 Scheduled (${stats.scheduledCount})` },
+                  { key: 'quoted', label: `Quoted (${stats.quoted})` },
+                  { key: 'closed', label: `Closed (${stats.closed})` },
+                  { key: 'spam', label: 'Spam' },
+                ].map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={() => setStatusFilter(t.key)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                      statusFilter === t.key
+                        ? 'bg-brand-orange text-white shadow-orange-glow'
+                        : 'bg-[#181E28] text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
-              <h3 className="text-lg font-bold text-white">No Inquiries Found in &quot;{statusFilter}&quot;</h3>
+
+              <div className="relative w-full md:w-72">
+                <Search className="h-4 w-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search name, phone, area, technician..."
+                  className="w-full pl-9 pr-4 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-brand-orange"
+                />
+              </div>
             </div>
-          ) : (
-            enquiries.map((enquiry) => {
-              const cleanPhone = enquiry.phone.replace(/[^\d+]/g, '');
-              const hasFollowupDue =
-                enquiry.followup_date &&
-                new Date(enquiry.followup_date).getTime() <= Date.now() + 86400000;
 
-              return (
-                <div
-                  key={enquiry.id}
-                  className="bg-[#12151B] border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-md transition-all space-y-4"
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    {/* Customer Info Block */}
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
-                        <span className="font-extrabold text-base text-white">{enquiry.name}</span>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${getStatusBadge(enquiry.status)}`}>
-                          {enquiry.status}
-                        </span>
+            {/* Enquiries Cards */}
+            {isLoading && enquiries.length === 0 ? (
+              <div className="bg-[#12151B] border border-slate-800 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-3">
+                <RefreshCw className="h-8 w-8 text-brand-orange animate-spin" />
+                <p className="text-sm font-medium">Loading customer records...</p>
+              </div>
+            ) : enquiries.length === 0 ? (
+              <div className="bg-[#12151B] border border-slate-800 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-4">
+                <FileText className="h-8 w-8 text-slate-500" />
+                <h3 className="text-lg font-bold text-white">No Inquiries Found in &quot;{statusFilter}&quot;</h3>
+              </div>
+            ) : (
+              enquiries.map((enquiry) => {
+                const cleanPhone = enquiry.phone.replace(/[^\d+]/g, '');
+                const hasFollowupDue =
+                  enquiry.followup_date &&
+                  new Date(enquiry.followup_date).getTime() <= Date.now() + 86400000;
 
-                        {enquiry.scheduled_date && (
-                          <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/40 text-[10px] font-bold text-blue-300 flex items-center space-x-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>Scheduled: {enquiry.scheduled_date} ({enquiry.scheduled_time || 'General'})</span>
+                return (
+                  <div
+                    key={enquiry.id}
+                    className="bg-[#12151B] border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-md transition-all space-y-4"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      {/* Customer Info */}
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
+                          <span className="font-extrabold text-base text-white">{enquiry.name}</span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold border ${
+                            enquiry.status === 'new' ? 'bg-brand-orange/20 text-brand-orange border-brand-orange/40' :
+                            enquiry.status === 'contacted' ? 'bg-blue-500/20 text-blue-400 border-blue-500/40' :
+                            enquiry.status === 'quoted' ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' :
+                            enquiry.status === 'closed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' :
+                            'bg-slate-800 text-slate-300'
+                          }`}>
+                            {enquiry.status}
                           </span>
+
+                          {enquiry.scheduled_date && (
+                            <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/40 text-[10px] font-bold text-blue-300 flex items-center space-x-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>Scheduled: {enquiry.scheduled_date} ({enquiry.scheduled_time || 'General'})</span>
+                            </span>
+                          )}
+
+                          {hasFollowupDue && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-300 flex items-center space-x-1 animate-pulse">
+                              <Bell className="h-3 w-3" />
+                              <span>Follow-up Due</span>
+                            </span>
+                          )}
+
+                          {enquiry.source === 'ai_assistant' && (
+                            <button
+                              onClick={() => {
+                                setTranscriptEnquiry(enquiry);
+                                setIsTranscriptModalOpen(true);
+                              }}
+                              className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-[10px] font-bold text-purple-300 flex items-center space-x-1 hover:bg-purple-500/30"
+                            >
+                              <span>🎙️ Priya AI Voice Lead</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center space-x-4 text-xs text-slate-400 flex-wrap gap-y-1">
+                          <span className="font-bold text-slate-200">{enquiry.phone}</span>
+                          <span className="flex items-center space-x-1 text-slate-300">
+                            <MapPin className="h-3.5 w-3.5 text-brand-orange" />
+                            <span>{enquiry.location}</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-medium">
+                            {enquiry.service_name || 'AC Core Cutting'}
+                          </span>
+                          <span className="flex items-center space-x-1 text-slate-500 text-[11px]">
+                            <Clock className="h-3 w-3" />
+                            <span>{new Date(enquiry.created_at).toLocaleString('en-IN')}</span>
+                          </span>
+                        </div>
+
+                        {/* Value Tags */}
+                        {(enquiry.quote_amount || enquiry.collected_amount) && (
+                          <div className="flex items-center space-x-3 pt-1 text-xs flex-wrap gap-y-1">
+                            {enquiry.quote_amount && (
+                              <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold">
+                                Quoted: ₹{Number(enquiry.quote_amount).toLocaleString('en-IN')}
+                              </span>
+                            )}
+                            {enquiry.collected_amount && (
+                              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 font-black">
+                                Collected: ₹{Number(enquiry.collected_amount).toLocaleString('en-IN')}
+                              </span>
+                            )}
+                            {enquiry.assigned_technician && (
+                              <span className="text-slate-400 flex items-center space-x-1 text-[11px]">
+                                <Wrench className="h-3 w-3 text-slate-500" />
+                                <span>Tech: <strong>{enquiry.assigned_technician}</strong></span>
+                              </span>
+                            )}
+                          </div>
                         )}
 
-                        {hasFollowupDue && (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-300 flex items-center space-x-1 animate-pulse">
-                            <Bell className="h-3 w-3" />
-                            <span>Follow-up Due</span>
-                          </span>
+                        {/* Customer Note */}
+                        {enquiry.message && (
+                          <div className="mt-2 p-2.5 rounded-xl bg-[#090C11] border border-slate-800 text-xs text-slate-300">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">Note:</span>
+                            {enquiry.message}
+                          </div>
+                        )}
+
+                        {/* Site Photos Count */}
+                        {enquiry.site_photos && enquiry.site_photos.length > 0 && (
+                          <div className="flex items-center space-x-2 pt-1">
+                            <button
+                              onClick={() => {
+                                setPhotoEnquiry(enquiry);
+                                setIsPhotoModalOpen(true);
+                              }}
+                              className="text-xs text-brand-orange hover:underline font-bold flex items-center space-x-1"
+                            >
+                              <Camera className="h-3.5 w-3.5" />
+                              <span>{enquiry.site_photos.length} Site Photo(s) Attached</span>
+                            </button>
+                          </div>
                         )}
                       </div>
 
-                      <div className="flex items-center space-x-4 text-xs text-slate-400 flex-wrap gap-y-1">
-                        <span className="font-bold text-slate-200">{enquiry.phone}</span>
-                        <span className="flex items-center space-x-1 text-slate-300">
-                          <MapPin className="h-3.5 w-3.5 text-brand-orange" />
-                          <span>{enquiry.location}</span>
-                        </span>
-                        <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-medium">
-                          {enquiry.service_name || 'AC Core Cutting'}
-                        </span>
-                        <span className="flex items-center space-x-1 text-slate-500 text-[11px]">
-                          <Clock className="h-3 w-3" />
-                          <span>{new Date(enquiry.created_at).toLocaleString('en-IN')}</span>
-                        </span>
+                      {/* Quick CRM Action Bar */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800">
+                        {/* 1. UPI QR Code */}
+                        <button
+                          onClick={() => openUpiModal(enquiry)}
+                          className="inline-flex items-center space-x-1 px-2.5 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-bold transition-all active:scale-95"
+                          title="Generate UPI QR code for on-site payment"
+                        >
+                          <QrCode className="h-3.5 w-3.5 text-purple-400" />
+                          <span>UPI QR</span>
+                        </button>
+
+                        {/* 2. Quotation */}
+                        <button
+                          onClick={() => {
+                            setQuoteEnquiry(enquiry);
+                            setIsQuoteModalOpen(true);
+                          }}
+                          className="inline-flex items-center space-x-1 px-2.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all active:scale-95"
+                          title="Create estimate & PDF quote"
+                        >
+                          <Calculator className="h-3.5 w-3.5" />
+                          <span>Quote</span>
+                        </button>
+
+                        {/* 3. WhatsApp Templates */}
+                        <button
+                          onClick={() => openWhatsAppModal(enquiry)}
+                          className="inline-flex items-center space-x-1 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all active:scale-95"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          <span>WhatsApp</span>
+                        </button>
+
+                        {/* 4. Google Review */}
+                        {enquiry.status === 'closed' && (
+                          <button
+                            onClick={() => openReviewModal(enquiry)}
+                            className="inline-flex items-center space-x-1 px-2.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-black shadow-sm transition-all active:scale-95"
+                            title="Request 5-Star Google Review"
+                          >
+                            <Star className="h-3.5 w-3.5 fill-slate-900" />
+                            <span>Review</span>
+                          </button>
+                        )}
+
+                        {/* 5. Schedule */}
+                        <button
+                          onClick={() => {
+                            setScheduleEnquiry(enquiry);
+                            setScheduleData({
+                              date: enquiry.scheduled_date || new Date().toISOString().split('T')[0],
+                              timeSlot: enquiry.scheduled_time || 'Morning (09:00 AM - 12:00 PM)',
+                              technician: enquiry.assigned_technician || 'Raju Team (Lead Cutter)',
+                              notes: enquiry.internal_notes || '',
+                            });
+                            setIsScheduleModalOpen(true);
+                          }}
+                          className="inline-flex items-center space-x-1 px-2.5 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 text-xs font-bold transition-all active:scale-95"
+                        >
+                          <Calendar className="h-3.5 w-3.5" />
+                          <span>Schedule</span>
+                        </button>
+
+                        {/* 6. Photos */}
+                        <button
+                          onClick={() => {
+                            setPhotoEnquiry(enquiry);
+                            setIsPhotoModalOpen(true);
+                          }}
+                          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
+                          title="Attach site photos"
+                        >
+                          <Camera className="h-3.5 w-3.5" />
+                        </button>
+
+                        {/* 7. Notes */}
+                        <button
+                          onClick={() => {
+                            setNotesEnquiry(enquiry);
+                            setNotesData({
+                              notes: enquiry.internal_notes || '',
+                              followupDate: enquiry.followup_date || '',
+                              collectedAmount: enquiry.collected_amount || enquiry.quote_amount || 0,
+                            });
+                            setIsNotesModalOpen(true);
+                          }}
+                          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
+                          title="Edit private notes & payment"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+
+                        {/* Status Dropdown */}
+                        <select
+                          value={enquiry.status}
+                          disabled={isUpdating === enquiry.id}
+                          onChange={(e) => handleStatusChange(enquiry.id, e.target.value as Enquiry['status'])}
+                          className="px-2 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-xs font-bold text-slate-200 cursor-pointer"
+                        >
+                          <option value="new">New</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="quoted">Quoted</option>
+                          <option value="closed">Closed</option>
+                          <option value="spam">Spam</option>
+                        </select>
+
+                        {/* Call */}
+                        <a
+                          href={`tel:${cleanPhone}`}
+                          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
+                          title="Call customer"
+                        >
+                          <Phone className="h-3.5 w-3.5 text-brand-orange" />
+                        </a>
+
+                        {/* Delete */}
+                        <button
+                          onClick={() => handleDelete(enquiry.id)}
+                          disabled={isUpdating === enquiry.id}
+                          className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700/60"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-
-                      {/* Financial Value Tag */}
-                      {(enquiry.quote_amount || enquiry.collected_amount) && (
-                        <div className="flex items-center space-x-3 pt-1 text-xs">
-                          {enquiry.quote_amount && (
-                            <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold">
-                              Quotation: ₹{Number(enquiry.quote_amount).toLocaleString('en-IN')}
-                            </span>
-                          )}
-                          {enquiry.collected_amount && (
-                            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 font-black">
-                              Paid / Collected: ₹{Number(enquiry.collected_amount).toLocaleString('en-IN')}
-                            </span>
-                          )}
-                          {enquiry.assigned_technician && (
-                            <span className="text-slate-400 flex items-center space-x-1 text-[11px]">
-                              <Wrench className="h-3 w-3 text-slate-500" />
-                              <span>Tech: <strong>{enquiry.assigned_technician}</strong></span>
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Customer Note */}
-                      {enquiry.message && (
-                        <div className="mt-2 p-2.5 rounded-xl bg-[#090C11] border border-slate-800 text-xs text-slate-300">
-                          <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">Customer Requirement:</span>
-                          {enquiry.message}
-                        </div>
-                      )}
-
-                      {/* Internal Staff Notes */}
-                      {enquiry.internal_notes && (
-                        <div className="mt-1 p-2 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-amber-300/90 flex items-start space-x-2">
-                          <Edit3 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400" />
-                          <span><strong>Internal Note:</strong> {enquiry.internal_notes}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Quick CRM Action Bar */}
-                    <div className="flex flex-wrap items-center gap-2 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800">
-                      {/* 1. Quick Quotation Generator */}
-                      <button
-                        onClick={() => {
-                          setQuoteEnquiry(enquiry);
-                          setQuoteDetails((prev) => ({
-                            ...prev,
-                            ratePerHole: enquiry.service_id?.includes('rcc') ? 650 : 350,
-                            material: enquiry.service_id?.includes('rcc') ? 'RCC Beam / Column (₹650/hole)' : 'Brick Wall (₹350/hole)',
-                          }));
-                          setIsQuoteModalOpen(true);
-                        }}
-                        className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all active:scale-95"
-                        title="Create formal quote & PDF"
-                      >
-                        <Calculator className="h-3.5 w-3.5" />
-                        <span>Quote</span>
-                      </button>
-
-                      {/* 2. WhatsApp Template Quick Reply */}
-                      <button
-                        onClick={() => openWhatsAppModal(enquiry)}
-                        className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all active:scale-95"
-                        title="Send ready WhatsApp message in Gujarati/Hindi/English"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        <span>WhatsApp</span>
-                      </button>
-
-                      {/* 3. Schedule Visit */}
-                      <button
-                        onClick={() => {
-                          setScheduleEnquiry(enquiry);
-                          setScheduleData({
-                            date: enquiry.scheduled_date || new Date().toISOString().split('T')[0],
-                            timeSlot: enquiry.scheduled_time || 'Morning (09:00 AM - 12:00 PM)',
-                            technician: enquiry.assigned_technician || 'Raju Team (Lead Cutter)',
-                            notes: enquiry.internal_notes || '',
-                          });
-                          setIsScheduleModalOpen(true);
-                        }}
-                        className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 text-xs font-bold transition-all active:scale-95"
-                        title="Schedule site visit and technician"
-                      >
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>Schedule</span>
-                      </button>
-
-                      {/* 4. Notes & Follow-up */}
-                      <button
-                        onClick={() => {
-                          setNotesEnquiry(enquiry);
-                          setNotesData({
-                            notes: enquiry.internal_notes || '',
-                            followupDate: enquiry.followup_date || '',
-                            collectedAmount: enquiry.collected_amount || enquiry.quote_amount || 0,
-                          });
-                          setIsNotesModalOpen(true);
-                        }}
-                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
-                        title="Internal notes & Payment"
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                      </button>
-
-                      {/* Status Selector */}
-                      <select
-                        value={enquiry.status}
-                        disabled={isUpdating === enquiry.id}
-                        onChange={(e) => handleUpdateField(enquiry.id, { status: e.target.value as Enquiry['status'] })}
-                        className="px-2.5 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:outline-none focus:border-brand-orange cursor-pointer"
-                      >
-                        <option value="new">New</option>
-                        <option value="contacted">Contacted</option>
-                        <option value="quoted">Quoted</option>
-                        <option value="closed">Closed / Paid</option>
-                        <option value="spam">Spam</option>
-                      </select>
-
-                      {/* Direct Phone Call */}
-                      <a
-                        href={`tel:${cleanPhone}`}
-                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition-all"
-                        title="Call customer"
-                      >
-                        <Phone className="h-3.5 w-3.5 text-brand-orange" />
-                      </a>
-
-                      {/* Delete */}
-                      <button
-                        onClick={() => handleDelete(enquiry.id)}
-                        disabled={isUpdating === enquiry.id}
-                        className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700/60 transition-all"
-                        title="Delete record"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
                     </div>
                   </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* VIEW 2: AREA ROUTE & TERRITORY DISPATCH MAP */}
+        {/* ================================================================= */}
+        {activeView === 'dispatch' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-[#12151B] border border-slate-800 rounded-3xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-extrabold text-white flex items-center space-x-2">
+                    <Map className="h-5 w-5 text-blue-400" />
+                    <span>Area Route &amp; Technician Territory Dispatch</span>
+                  </h2>
+                  <p className="text-xs text-slate-400">Jobs clustered by neighborhood for efficient cutting routes</p>
                 </div>
-              );
-            })
-          )}
-        </div>
+                <button
+                  onClick={() => setActiveView('list')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-200"
+                >
+                  ← Back to List
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(locationClusters).map(([area, areaLeads]) => (
+                  <div key={area} className="bg-[#090C11] border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="h-4 w-4 text-brand-orange" />
+                        <span className="font-extrabold text-sm text-white">{area}</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold">
+                        {areaLeads.length} Lead(s)
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {areaLeads.map((lead, idx) => (
+                        <div key={lead.id} className="p-2.5 rounded-xl bg-[#12151B] border border-slate-800 text-xs space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-white">Stop #{idx + 1}: {lead.name}</span>
+                            <span className="text-[10px] text-amber-400">{lead.service_name || 'Core Cutting'}</span>
+                          </div>
+                          <div className="text-slate-400 text-[11px] flex justify-between">
+                            <span>📞 {lead.phone}</span>
+                            <span>{lead.scheduled_time || 'Pending Schedule'}</span>
+                          </div>
+                          <div className="pt-1 flex justify-end space-x-1.5">
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.location + ' ' + defaultBusinessProfile.city)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-blue-400 hover:underline flex items-center space-x-0.5"
+                            >
+                              <span>Open Map Route ↗</span>
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* VIEW 3: DIAMOND BITS & MACHINE WEAR TRACKER */}
+        {/* ================================================================= */}
+        {activeView === 'equipment' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-[#12151B] border border-slate-800 rounded-3xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-extrabold text-white flex items-center space-x-2">
+                    <Wrench className="h-5 w-5 text-amber-400" />
+                    <span>Diamond Segment Core Bits &amp; Tool Health</span>
+                  </h2>
+                  <p className="text-xs text-slate-400">Track drill bit wear, hole counts, and replacement schedules</p>
+                </div>
+                <button
+                  onClick={() => setActiveView('list')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-200"
+                >
+                  ← Back to List
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {diamondBits.map((bit) => {
+                  const lifePercent = Math.max(0, Math.round(((bit.maxLifeHoles - bit.holesCut) / bit.maxLifeHoles) * 100));
+                  const isLow = lifePercent < 30;
+
+                  return (
+                    <div key={bit.id} className="bg-[#090C11] border border-slate-800 rounded-2xl p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-extrabold text-sm text-white">{bit.size}</div>
+                          <div className="text-[11px] text-slate-400">{bit.application}</div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          isLow ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'bg-emerald-500/20 text-emerald-400'
+                        }`}>
+                          {lifePercent}% Life Left
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            isLow ? 'bg-red-500' : lifePercent < 60 ? 'bg-amber-500' : 'bg-emerald-500'
+                          }`}
+                          style={{ width: `${lifePercent}%` }}
+                        />
+                      </div>
+
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>Cut: <strong>{bit.holesCut} holes</strong></span>
+                        <span>Max: <strong>{bit.maxLifeHoles} holes</strong></span>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-800 flex justify-between">
+                        <button
+                          onClick={() => {
+                            setDiamondBits((prev) =>
+                              prev.map((b) => (b.id === bit.id ? { ...b, holesCut: b.holesCut + 1 } : b))
+                            );
+                          }}
+                          className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-white rounded-lg"
+                        >
+                          + Log 1 Hole
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDiamondBits((prev) =>
+                              prev.map((b) => (b.id === bit.id ? { ...b, holesCut: 0 } : b))
+                            );
+                          }}
+                          className="text-[10px] text-slate-500 hover:text-slate-300"
+                        >
+                          Reset New Bit
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* ================================================================= */}
-      {/* 1. QUOTATION ESTIMATOR & PDF GENERATOR MODAL */}
+      {/* MODAL 1: UPI QR CODE MODAL */}
       {/* ================================================================= */}
-      {isQuoteModalOpen && quoteEnquiry && (
+      {isUpiModalOpen && upiEnquiry && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-center">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-                  🧾
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white">Quotation Calculator for {quoteEnquiry.name}</h3>
-                  <p className="text-xs text-slate-400">Generate estimate &amp; formal PDF invoice</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsQuoteModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
-              >
+              <span className="font-extrabold text-sm text-white">Instant UPI QR Code</span>
+              <button onClick={() => setIsUpiModalOpen(false)} className="p-1 text-slate-400 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div>
+              <label className="text-xs font-bold text-slate-400">Payment Amount (₹)</label>
+              <input
+                type="number"
+                value={upiAmount}
+                onChange={(e) => setUpiAmount(Number(e.target.value))}
+                className="w-full text-center text-2xl font-black text-emerald-400 bg-[#090C11] border border-slate-700 rounded-xl py-2 mt-1"
+              />
+            </div>
+
+            {/* QR Code Container */}
+            <div className="bg-white p-4 rounded-2xl inline-block shadow-inner">
+              <img
+                src={upiQrImageUrl}
+                alt="UPI Payment QR Code"
+                className="w-48 h-48 mx-auto"
+              />
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Customer can scan with <strong>GPay, PhonePe, Paytm or BHIM</strong>
+            </p>
+
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(upiPayUrl);
+                  setUpiCopied(true);
+                  setTimeout(() => setUpiCopied(false), 2000);
+                }}
+                className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white flex items-center justify-center space-x-1.5"
+              >
+                {upiCopied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                <span>{upiCopied ? 'UPI Link Copied!' : 'Copy Payment Link'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const cleanPhone = upiEnquiry.phone.replace(/\D/g, '');
+                  const waMsg = `Namaste ${upiEnquiry.name} ji! 🙏\nHere is your UPI payment link of ₹${upiAmount} for Diamond Core Cutting service:\n${upiPayUrl}\n\nThank you!`;
+                  window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`, '_blank');
+                  setIsUpiModalOpen(false);
+                }}
+                className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-black text-white flex items-center justify-center space-x-1.5"
+              >
+                <Send className="h-4 w-4" />
+                <span>Send Payment Link on WhatsApp</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================= */}
+      {/* MODAL 2: GOOGLE 5-STAR REVIEW REQUEST MODAL */}
+      {/* ================================================================= */}
+      {isReviewModalOpen && reviewEnquiry && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
+                <h3 className="text-base font-extrabold text-white">Request Google Review</h3>
+              </div>
+              <button onClick={() => setIsReviewModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Send a 1-click review invite to <strong>{reviewEnquiry.name}</strong> ({reviewEnquiry.phone}) in their preferred language:
+            </p>
+
+            <div className="space-y-2.5">
+              <button
+                onClick={() => handleSendGoogleReview('gu')}
+                className="w-full p-3 rounded-xl bg-[#090C11] border border-slate-700 hover:border-emerald-500 text-left text-xs font-bold text-white transition flex justify-between items-center"
+              >
+                <span>ગુજરાતી મેસેજ (Gujarati)</span>
+                <Send className="h-4 w-4 text-emerald-400" />
+              </button>
+
+              <button
+                onClick={() => handleSendGoogleReview('hi')}
+                className="w-full p-3 rounded-xl bg-[#090C11] border border-slate-700 hover:border-emerald-500 text-left text-xs font-bold text-white transition flex justify-between items-center"
+              >
+                <span>हिंदी संदेश (Hindi)</span>
+                <Send className="h-4 w-4 text-emerald-400" />
+              </button>
+
+              <button
+                onClick={() => handleSendGoogleReview('en')}
+                className="w-full p-3 rounded-xl bg-[#090C11] border border-slate-700 hover:border-emerald-500 text-left text-xs font-bold text-white transition flex justify-between items-center"
+              >
+                <span>English Review Message</span>
+                <Send className="h-4 w-4 text-emerald-400" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================= */}
+      {/* MODAL 3: SITE PHOTOS UPLOADER / VIEWER */}
+      {/* ================================================================= */}
+      {isPhotoModalOpen && photoEnquiry && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Camera className="h-5 w-5 text-brand-orange" />
+                <h3 className="text-base font-extrabold text-white">Site Photos: {photoEnquiry.name}</h3>
+              </div>
+              <button onClick={() => setIsPhotoModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Paste Image URL / Link..."
+                  value={photoUrlInput}
+                  onChange={(e) => setPhotoUrlInput(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-xs text-white"
+                />
+                <button
+                  onClick={handleAddPhoto}
+                  className="px-4 py-2 bg-brand-orange text-white text-xs font-bold rounded-xl shadow-orange-glow"
+                >
+                  Add Photo
+                </button>
+              </div>
+
+              {photoEnquiry.site_photos && photoEnquiry.site_photos.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+                  {photoEnquiry.site_photos.map((src, i) => (
+                    <div key={i} className="relative rounded-xl overflow-hidden border border-slate-700 bg-black">
+                      <img src={src} alt="Site Photo" className="w-full h-24 object-cover" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-xs text-slate-500">
+                  No site photos attached yet. Paste an image URL above to attach.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================= */}
+      {/* MODAL 4: AI CHAT TRANSCRIPT MODAL */}
+      {/* ================================================================= */}
+      {isTranscriptModalOpen && transcriptEnquiry && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">🎙️</span>
+                <h3 className="text-base font-extrabold text-white">Priya AI Conversation Record</h3>
+              </div>
+              <button onClick={() => setIsTranscriptModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-4 bg-[#090C11] border border-slate-800 rounded-2xl text-xs space-y-2 max-h-64 overflow-y-auto">
+              <div className="text-slate-400"><strong>Customer Name:</strong> {transcriptEnquiry.name}</div>
+              <div className="text-slate-400"><strong>Phone:</strong> {transcriptEnquiry.phone}</div>
+              <div className="text-slate-400"><strong>Location:</strong> {transcriptEnquiry.location}</div>
+              <div className="pt-2 border-t border-slate-800 text-slate-200 leading-relaxed">
+                <strong>Customer Audio Transcript:</strong>
+                <p className="mt-1 p-2 bg-slate-900 rounded-lg text-slate-300 font-mono text-[11px]">
+                  {transcriptEnquiry.message || 'Customer interacted via Priya Multilingual Voice Assistant.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================= */}
+      {/* MODAL 5: QUOTATION ESTIMATOR */}
+      {/* ================================================================= */}
+      {isQuoteModalOpen && quoteEnquiry && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Calculator className="h-5 w-5 text-amber-400" />
+                <h3 className="text-base font-extrabold text-white">Estimate: {quoteEnquiry.name}</h3>
+              </div>
+              <button onClick={() => setIsQuoteModalOpen(false)} className="p-1.5 text-slate-400 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Hole Diameter Size</label>
+                <label className="block text-slate-400 mb-1">Hole Diameter</label>
                 <select
                   value={quoteDetails.holeSize}
                   onChange={(e) => setQuoteDetails({ ...quoteDetails, holeSize: e.target.value })}
                   className="w-full px-3 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-white"
                 >
                   <option value="2 Inch (50mm)">2 Inch (50mm)</option>
-                  <option value="2.5 Inch (63mm)">2.5 Inch (63mm)</option>
                   <option value="3 Inch (75mm)">3 Inch (75mm - Standard AC)</option>
-                  <option value="4 Inch (100mm)">4 Inch (100mm - Drain/Plumbing)</option>
+                  <option value="4 Inch (100mm)">4 Inch (100mm)</option>
                   <option value="5 Inch (125mm)">5 Inch (125mm)</option>
-                  <option value="6 Inch (150mm)">6 Inch (150mm - Chimney/Duct)</option>
-                  <option value="8 Inch (200mm)">8 Inch (200mm - Heavy RCC)</option>
+                  <option value="6 Inch (150mm)">6 Inch (150mm)</option>
+                  <option value="8 Inch (200mm)">8 Inch (200mm)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Wall / RCC Material</label>
+                <label className="block text-slate-400 mb-1">Wall Structure</label>
                 <select
                   value={quoteDetails.ratePerHole}
                   onChange={(e) => setQuoteDetails({ ...quoteDetails, ratePerHole: Number(e.target.value) })}
                   className="w-full px-3 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-white"
                 >
-                  <option value={350}>Standard Brick Wall (₹350/hole)</option>
-                  <option value={450}>AAC Block / Light Concrete (₹450/hole)</option>
-                  <option value={650}>Heavy RCC Beam / Column (₹650/hole)</option>
-                  <option value={850}>Slab / Heavy Grade Concrete (₹850/hole)</option>
+                  <option value={350}>Brick Wall (₹350/hole)</option>
+                  <option value={450}>AAC Block (₹450/hole)</option>
+                  <option value={650}>Heavy RCC Beam (₹650/hole)</option>
+                  <option value={850}>Slab (₹850/hole)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Number of Holes</label>
+                <label className="block text-slate-400 mb-1">Holes Count</label>
                 <input
                   type="number"
                   min="1"
-                  max="100"
                   value={quoteDetails.holesCount}
                   onChange={(e) => setQuoteDetails({ ...quoteDetails, holesCount: Math.max(1, Number(e.target.value)) })}
                   className="w-full px-3 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-white font-bold"
@@ -1098,7 +1532,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Discount (₹)</label>
+                <label className="block text-slate-400 mb-1">Discount (₹)</label>
                 <input
                   type="number"
                   min="0"
@@ -1109,34 +1543,29 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Total Display Box */}
             <div className="bg-[#090C11] border border-amber-500/30 p-4 rounded-2xl flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase">Estimated Total</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Estimated Total</span>
                 <div className="text-2xl font-black text-amber-400">₹{quoteTotal.toLocaleString('en-IN')}</div>
               </div>
               <div className="text-right text-xs text-slate-400">
-                <div>{quoteDetails.holesCount} holes × ₹{quoteDetails.ratePerHole}</div>
-                <div>+ ₹{quoteDetails.dustCatchingCharge} dust &amp; water protection</div>
+                {quoteDetails.holesCount} holes × ₹{quoteDetails.ratePerHole}
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-slate-800">
+            <div className="flex gap-2 justify-end pt-2 border-t border-slate-800">
               <button
-                type="button"
                 onClick={handlePrintQuotationPDF}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center space-x-1.5"
+                className="px-4 py-2 rounded-xl bg-slate-800 text-white font-bold text-xs flex items-center space-x-1"
               >
                 <Printer className="h-4 w-4" />
-                <span>Print / Download PDF Quote</span>
+                <span>PDF Quote</span>
               </button>
-
               <button
-                type="button"
                 onClick={handleSaveQuotation}
-                className="px-5 py-2.5 rounded-xl bg-brand-orange hover:bg-brand-orange-hover text-white font-black text-xs shadow-orange-glow"
+                className="px-5 py-2 rounded-xl bg-brand-orange text-white font-black text-xs shadow-orange-glow"
               >
-                💾 Save Quote (₹{quoteTotal})
+                Save Quote (₹{quoteTotal})
               </button>
             </div>
           </div>
@@ -1144,72 +1573,44 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ================================================================= */}
-      {/* 2. MULTILINGUAL WHATSAPP QUICK-REPLY MODAL */}
+      {/* MODAL 6: WHATSAPP QUICK TEMPLATES */}
       {/* ================================================================= */}
       {isWaModalOpen && waEnquiry && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-                  💬
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white">WhatsApp Reply to {waEnquiry.name}</h3>
-                  <p className="text-xs text-slate-400">{waEnquiry.phone} • {waEnquiry.location}</p>
-                </div>
-              </div>
-              <button onClick={() => setIsWaModalOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-white">
+              <h3 className="text-base font-extrabold text-white">WhatsApp to {waEnquiry.name}</h3>
+              <button onClick={() => setIsWaModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Language Selector */}
             <div className="flex gap-2">
-              <button
-                onClick={() => updateWaMessage('gu')}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-bold ${
-                  waLanguage === 'gu' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
-                }`}
-              >
-                ગુજરાતી (Gujarati)
-              </button>
-              <button
-                onClick={() => updateWaMessage('hi')}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-bold ${
-                  waLanguage === 'hi' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
-                }`}
-              >
-                हिंदी (Hindi)
-              </button>
-              <button
-                onClick={() => updateWaMessage('en')}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-bold ${
-                  waLanguage === 'en' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
-                }`}
-              >
-                English
-              </button>
+              {(['gu', 'hi', 'en'] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => updateWaMessage(l)}
+                  className={`flex-1 py-1.5 rounded-xl text-xs font-bold ${
+                    waLanguage === l ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  {l === 'gu' ? 'ગુજરાતી' : l === 'hi' ? 'हिंदी' : 'English'}
+                </button>
+              ))}
             </div>
 
             <textarea
-              rows={6}
+              rows={5}
               value={customWaMessage}
               onChange={(e) => setCustomWaMessage(e.target.value)}
-              className="w-full p-3 bg-[#090C11] border border-slate-700 rounded-xl text-xs text-white leading-relaxed focus:outline-none focus:border-emerald-500"
+              className="w-full p-3 bg-[#090C11] border border-slate-700 rounded-xl text-xs text-white"
             />
 
             <div className="flex justify-end space-x-2 pt-2 border-t border-slate-800">
-              <button
-                onClick={() => setIsWaModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold"
-              >
+              <button onClick={() => setIsWaModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl">
                 Cancel
               </button>
-              <button
-                onClick={handleSendWa}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center space-x-1.5 shadow-sm"
-              >
+              <button onClick={handleSendWa} className="px-5 py-2 bg-emerald-600 text-white text-xs font-black rounded-xl flex items-center space-x-1">
                 <Send className="h-4 w-4" />
                 <span>Open in WhatsApp</span>
               </button>
@@ -1219,29 +1620,21 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ================================================================= */}
-      {/* 3. SITE VISIT SCHEDULING & TECHNICIAN MODAL */}
+      {/* MODAL 7: SCHEDULE VISIT */}
       {/* ================================================================= */}
       {isScheduleModalOpen && scheduleEnquiry && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
-                  📅
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white">Schedule Job: {scheduleEnquiry.name}</h3>
-                  <p className="text-xs text-slate-400">Site: {scheduleEnquiry.location}</p>
-                </div>
-              </div>
-              <button onClick={() => setIsScheduleModalOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-white">
+              <h3 className="text-base font-extrabold text-white">Schedule: {scheduleEnquiry.name}</h3>
+              <button onClick={() => setIsScheduleModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <form onSubmit={handleSaveSchedule} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Site Visit Date</label>
+                <label className="block text-slate-400 mb-1">Date</label>
                 <input
                   type="date"
                   required
@@ -1252,7 +1645,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Time Slot</label>
+                <label className="block text-slate-400 mb-1">Time Slot</label>
                 <select
                   value={scheduleData.timeSlot}
                   onChange={(e) => setScheduleData({ ...scheduleData, timeSlot: e.target.value })}
@@ -1261,12 +1654,11 @@ export default function AdminDashboardPage() {
                   <option value="Morning (09:00 AM - 12:00 PM)">Morning (09:00 AM - 12:00 PM)</option>
                   <option value="Afternoon (12:00 PM - 03:00 PM)">Afternoon (12:00 PM - 03:00 PM)</option>
                   <option value="Evening (03:00 PM - 06:00 PM)">Evening (03:00 PM - 06:00 PM)</option>
-                  <option value="Emergency Immediate Slot">Emergency Immediate Slot</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Assign Technician / Team</label>
+                <label className="block text-slate-400 mb-1">Assign Technician</label>
                 <select
                   value={scheduleData.technician}
                   onChange={(e) => setScheduleData({ ...scheduleData, technician: e.target.value })}
@@ -1279,29 +1671,11 @@ export default function AdminDashboardPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Site Access Notes</label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. 4th floor without lift, 15A socket in gallery"
-                  value={scheduleData.notes}
-                  onChange={(e) => setScheduleData({ ...scheduleData, notes: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-white"
-                />
-              </div>
-
               <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsScheduleModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold"
-                >
+                <button type="button" onClick={() => setIsScheduleModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 font-bold rounded-xl">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm"
-                >
+                <button type="submit" className="px-5 py-2 bg-blue-600 text-white font-black rounded-xl">
                   Confirm Schedule
                 </button>
               </div>
@@ -1311,41 +1685,32 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ================================================================= */}
-      {/* 4. INTERNAL NOTES & PAYMENT TRACKER MODAL */}
+      {/* MODAL 8: NOTES & PAYMENT */}
       {/* ================================================================= */}
       {isNotesModalOpen && notesEnquiry && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-lg bg-slate-800 text-slate-200 flex items-center justify-center font-bold">
-                  📝
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white">Staff Notes &amp; Payment</h3>
-                  <p className="text-xs text-slate-400">{notesEnquiry.name} • {notesEnquiry.location}</p>
-                </div>
-              </div>
-              <button onClick={() => setIsNotesModalOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-white">
+              <h3 className="text-base font-extrabold text-white">Staff Notes &amp; Payment</h3>
+              <button onClick={() => setIsNotesModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <form onSubmit={handleSaveNotes} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Amount Collected / Paid (₹)</label>
+                <label className="block text-slate-400 mb-1">Amount Collected / Paid (₹)</label>
                 <input
                   type="number"
                   min="0"
-                  placeholder="e.g. 2500"
                   value={notesData.collectedAmount}
                   onChange={(e) => setNotesData({ ...notesData, collectedAmount: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-emerald-400 font-black text-sm"
+                  className="w-full px-3 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-emerald-400 font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Follow-up Reminder Date</label>
+                <label className="block text-slate-400 mb-1">Follow-up Reminder Date</label>
                 <input
                   type="date"
                   value={notesData.followupDate}
@@ -1355,10 +1720,9 @@ export default function AdminDashboardPage() {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Internal Private Notes</label>
+                <label className="block text-slate-400 mb-1">Internal Note</label>
                 <textarea
                   rows={3}
-                  placeholder="e.g. Client agreed on ₹2,500 cash, balance ₹500 on site completion."
                   value={notesData.notes}
                   onChange={(e) => setNotesData({ ...notesData, notes: e.target.value })}
                   className="w-full px-3 py-2 bg-[#090C11] border border-slate-700 rounded-xl text-white"
@@ -1366,18 +1730,11 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsNotesModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold"
-                >
+                <button type="button" onClick={() => setIsNotesModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 font-bold rounded-xl">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black"
-                >
-                  Save Notes &amp; Payment
+                <button type="submit" className="px-5 py-2 bg-emerald-600 text-white font-black rounded-xl">
+                  Save
                 </button>
               </div>
             </form>
@@ -1386,38 +1743,25 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ================================================================= */}
-      {/* 5. ADD MANUAL LEAD MODAL */}
+      {/* MODAL 9: ADD LEAD */}
       {/* ================================================================= */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-lg bg-brand-orange/20 text-brand-orange flex items-center justify-center font-bold">
-                  +
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white">Add Customer Lead</h3>
-                  <p className="text-xs text-slate-400">Log a manual call lead or test quote</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsAddModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white"
-              >
+              <h3 className="text-base font-extrabold text-white">Add Customer Lead</h3>
+              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {modalError && (
-              <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 text-xs">
-                {modalError}
-              </div>
+              <div className="p-3 rounded-xl bg-red-500/20 text-red-400 text-xs">{modalError}</div>
             )}
 
             <form onSubmit={handleCreateEnquiry} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Customer Name *</label>
+                <label className="block text-slate-400 mb-1">Customer Name *</label>
                 <input
                   type="text"
                   required
@@ -1429,7 +1773,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Phone Number *</label>
+                <label className="block text-slate-400 mb-1">Phone Number *</label>
                 <input
                   type="tel"
                   required
@@ -1442,7 +1786,7 @@ export default function AdminDashboardPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Service</label>
+                  <label className="block text-slate-400 mb-1">Service</label>
                   <select
                     value={newEnquiryData.serviceId}
                     onChange={(e) => setNewEnquiryData({ ...newEnquiryData, serviceId: e.target.value })}
@@ -1452,12 +1796,11 @@ export default function AdminDashboardPage() {
                     <option value="rcc-core-cutting">RCC Core Cutting</option>
                     <option value="ac-drain-hole">AC Drain Hole</option>
                     <option value="concrete-wall-drilling">Concrete Wall Drilling</option>
-                    <option value="pipe-cable-passage">Pipe &amp; Cable Passage</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Area / Location *</label>
+                  <label className="block text-slate-400 mb-1">Area / Location *</label>
                   <input
                     type="text"
                     required
@@ -1470,7 +1813,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Requirement Note</label>
+                <label className="block text-slate-400 mb-1">Requirement Note</label>
                 <textarea
                   rows={2}
                   placeholder="e.g. 3 holes for split AC in bedroom"
@@ -1481,18 +1824,10 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="pt-3 flex justify-end space-x-2 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold"
-                >
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 font-bold rounded-xl">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={modalLoading}
-                  className="px-5 py-2 rounded-xl bg-brand-orange hover:bg-brand-orange-hover text-white font-black shadow-orange-glow"
-                >
+                <button type="submit" disabled={modalLoading} className="px-5 py-2 bg-brand-orange text-white font-black rounded-xl shadow-orange-glow">
                   {modalLoading ? 'Saving...' : 'Save Lead'}
                 </button>
               </div>

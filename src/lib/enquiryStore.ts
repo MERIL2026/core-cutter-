@@ -25,6 +25,8 @@ export interface EnquiryRecord {
   assigned_technician?: string | null;
   internal_notes?: string | null;
   followup_date?: string | null;
+  site_photos?: string[] | null;
+  chat_transcript?: string | null;
 }
 
 export interface EnquiryStats {
@@ -132,6 +134,8 @@ export async function saveEnquiry(data: {
   assigned_technician?: string | null;
   internal_notes?: string | null;
   followup_date?: string | null;
+  site_photos?: string[] | null;
+  chat_transcript?: string | null;
 }): Promise<{ success: boolean; id: string; storage: 'supabase' | 'db' | 'fallback' }> {
   const recordId = `enq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const nowIso = new Date().toISOString();
@@ -161,6 +165,8 @@ export async function saveEnquiry(data: {
     assigned_technician: data.assigned_technician ?? null,
     internal_notes: data.internal_notes ?? null,
     followup_date: data.followup_date ?? null,
+    site_photos: data.site_photos ?? null,
+    chat_transcript: data.chat_transcript ?? null,
   };
 
   // 1. Persist immediately to local fallback
@@ -199,6 +205,8 @@ export async function saveEnquiry(data: {
           assigned_technician: data.assigned_technician ?? null,
           internal_notes: data.internal_notes ?? null,
           followup_date: data.followup_date ?? null,
+          site_photos: data.site_photos ?? null,
+          chat_transcript: data.chat_transcript ?? null,
         })
         .select('id')
         .single();
