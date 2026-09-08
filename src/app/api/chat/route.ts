@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { ChatLanguage } from '@/types/chatbot';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { AssistantPipeline } from '@/lib/assistant';
+import { saveEnquiry } from '@/lib/enquiryStore';
 
 const requestSchema = z.object({
   message: z.string().min(1, 'Message is required').max(1000, 'Message too long'),
@@ -64,6 +65,30 @@ export async function POST(req: NextRequest) {
       history,
       apiKey,
     });
+
+    // Automatically record lead if customer provided phone/contact in chat
+    const phoneMatch = message.match(/(?:\+?91[\s-]?)?[6-9]\d{9}|\b\d{10}\b/);
+    if (phoneMatch && phoneMatch[0]) {
+      const extractedPhone = phoneMatch[0].replace(/\D/g, '');
+      if (extractedPhone.length >= 7) {
+        const serviceSlug = assistantResult.entities?.service || 'ac-core-cutting';
+        const location = assistantResult.entities?.location || 'Direct Chat Enquiry';
+        try {
+          await saveEnquiry({
+            name: 'Priya AI Chat Customer',
+            phone: extractedPhone,
+            whatsappPreference: true,
+            serviceId: serviceSlug,
+            location,
+            message: `Priya AI Chat message: "${message}"`,
+            source: 'ai_assistant',
+            sourcePage: '/chat',
+          });
+        } catch (saveErr) {
+          console.warn('Could not auto-save AI chat enquiry:', saveErr);
+        }
+      }
+    }
 
     return NextResponse.json({
       reply: assistantResult.reply,

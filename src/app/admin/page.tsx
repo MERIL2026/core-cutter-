@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ShieldAlert,
@@ -18,6 +18,11 @@ import {
   Download,
   AlertCircle,
   Sparkles,
+  Plus,
+  Trash2,
+  X,
+  Send,
+  Check,
 } from 'lucide-react';
 import { defaultBusinessProfile } from '@/content/business';
 
@@ -35,6 +40,7 @@ interface Enquiry {
   source_page: string | null;
   created_at: string;
   updated_at: string;
+  source?: string;
 }
 
 interface Stats {
@@ -64,6 +70,22 @@ export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  
+  // Modal state for adding a manual / test enquiry
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [modalSuccess, setModalSuccess] = useState<string | null>(null);
+  const [newEnquiryData, setNewEnquiryData] = useState({
+    name: '',
+    phone: '',
+    whatsappPreference: true,
+    serviceId: 'ac-core-cutting',
+    location: defaultBusinessProfile.city,
+    message: '',
+  });
+
+  const previousCountRef = useRef<number>(0);
 
   const fetchEnquiries = useCallback(async (isBackground = false) => {
     if (!isBackground) setIsLoading(true);
@@ -73,7 +95,10 @@ export default function AdminDashboardPage() {
         url += `&search=${encodeURIComponent(searchQuery.trim())}`;
       }
 
-      const res = await fetch(url, { cache: 'no-store' });
+      const res = await fetch(url, {
+        cache: 'no-store',
+        credentials: 'include',
+      });
       if (res.status === 401) {
         router.push('/admin/login');
         return;
@@ -96,7 +121,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     fetchEnquiries();
-    // Auto-poll every 3 seconds for live real-time enquiry updates
+    // Auto-poll every 3 seconds for real-time customer enquiry updates
     const timer = setInterval(() => {
       fetchEnquiries(true);
     }, 3000);
@@ -109,6 +134,7 @@ export default function AdminDashboardPage() {
       const res = await fetch('/api/admin/enquiries', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ id, status: newStatus }),
       });
 
@@ -116,8 +142,7 @@ export default function AdminDashboardPage() {
         setEnquiries((prev) =>
           prev.map((e) => (e.id === id ? { ...e, status: newStatus } : e))
         );
-        // Refresh counts
-        fetchEnquiries();
+        fetchEnquiries(true);
       }
     } catch (err) {
       console.error('Status update failed:', err);
@@ -126,9 +151,112 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this enquiry record?')) return;
+    setIsUpdating(id);
+    try {
+      const res = await fetch(`/api/admin/enquiries?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (res.ok) {
+        setEnquiries((prev) => prev.filter((e) => e.id !== id));
+        fetchEnquiries(true);
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  const handleCreateEnquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalError(null);
+    setModalSuccess(null);
+
+    if (!newEnquiryData.name.trim()) {
+      setModalError('Please enter a customer name.');
+      return;
+    }
+    if (!newEnquiryData.phone.trim() || newEnquiryData.phone.replace(/\D/g, '').length < 7) {
+      setModalError('Please enter a valid phone number (at least 7 digits).');
+      return;
+    }
+    if (!newEnquiryData.location.trim()) {
+      setModalError('Please enter a location / area.');
+      return;
+    }
+
+    setModalLoading(true);
+    try {
+      const res = await fetch('/api/admin/enquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(newEnquiryData),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setModalSuccess('Enquiry logged successfully!');
+        setNewEnquiryData({
+          name: '',
+          phone: '',
+          whatsappPreference: true,
+          serviceId: 'ac-core-cutting',
+          location: defaultBusinessProfile.city,
+          message: '',
+        });
+        fetchEnquiries(false);
+        setTimeout(() => {
+          setIsAddModalOpen(false);
+          setModalSuccess(null);
+        }, 800);
+      } else {
+        setModalError(data.error || 'Failed to create enquiry');
+      }
+    } catch (err: any) {
+      setModalError(err.message || 'Network error');
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleQuickTestEnquiry = async () => {
+    const testNames = ['Rajesh Patel', 'Amit Shah', 'Priya Desai', 'Vikram Singh', 'Kiran Mehta'];
+    const randomName = testNames[Math.floor(Math.random() * testNames.length)];
+    const randomPhone = `98${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const randomLocations = ['Alkapuri', 'Gotri', 'Vasna', 'Manjalpur', 'Karelibaug', 'Sama'];
+    const randomLoc = randomLocations[Math.floor(Math.random() * randomLocations.length)];
+
+    try {
+      const res = await fetch('/api/admin/enquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: randomName,
+          phone: randomPhone,
+          whatsappPreference: true,
+          serviceId: 'ac-core-cutting',
+          location: randomLoc,
+          message: 'Need 3 holes for 1.5 ton split AC installation with dust catcher.',
+          status: 'new',
+        }),
+      });
+      if (res.ok) {
+        fetchEnquiries(false);
+      }
+    } catch (err) {
+      console.error('Quick test failed:', err);
+    }
+  };
+
   const handleLogout = async () => {
     try {
-      await fetch('/api/admin/logout', { method: 'POST' });
+      await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
       router.push('/admin/login');
       router.refresh();
     } catch (err) {
@@ -139,7 +267,7 @@ export default function AdminDashboardPage() {
   const handleExportCSV = () => {
     if (enquiries.length === 0) return;
 
-    const headers = ['Date', 'Name', 'Phone', 'WhatsApp Preferred', 'Service', 'Location', 'Status', 'Message'];
+    const headers = ['Date', 'Name', 'Phone', 'WhatsApp Preferred', 'Service', 'Location', 'Status', 'Source', 'Message'];
     const rows = enquiries.map((e) => [
       new Date(e.created_at).toLocaleString('en-IN'),
       `"${e.name.replace(/"/g, '""')}"`,
@@ -148,6 +276,7 @@ export default function AdminDashboardPage() {
       `"${(e.service_name || 'General Core Cutting').replace(/"/g, '""')}"`,
       `"${e.location.replace(/"/g, '""')}"`,
       e.status.toUpperCase(),
+      `"${e.source || 'Web Form'}"`,
       `"${(e.message || '').replace(/"/g, '""')}"`,
     ]);
 
@@ -178,6 +307,17 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const getSourceBadge = (source?: string) => {
+    switch (source) {
+      case 'ai_assistant':
+        return { label: 'Priya AI Voice/Chat', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' };
+      case 'admin_manual':
+        return { label: 'Phone/Manual Entry', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' };
+      default:
+        return { label: 'Website Quote Form', color: 'bg-slate-800 text-slate-300 border-slate-700' };
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0B0F19] text-white flex flex-col">
       {/* Top Navbar */}
@@ -196,20 +336,30 @@ export default function AdminDashboardPage() {
                   Admin Portal
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Owner Lead Management & Customer CRM</p>
+              <p className="text-xs text-slate-400">Owner Lead Management &amp; Customer CRM</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
             <div className="hidden md:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[11px] font-bold text-emerald-400">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Live Auto-Sync Active</span>
             </div>
 
+            {/* Quick Add Button */}
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-brand-orange to-amber-500 hover:from-brand-orange-hover hover:to-amber-600 text-xs font-black text-white shadow-orange-glow transition-all active:scale-95"
+              title="Add manual enquiry or booking"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Enquiry</span>
+            </button>
+
             <button
               onClick={handleExportCSV}
               disabled={enquiries.length === 0}
-              className="hidden sm:inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-[#181E28] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition-all disabled:opacity-40"
+              className="hidden sm:inline-flex items-center space-x-2 px-3 py-2 rounded-xl bg-[#181E28] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition-all disabled:opacity-40"
               title="Export leads to CSV"
             >
               <Download className="h-4 w-4" />
@@ -311,17 +461,33 @@ export default function AdminDashboardPage() {
           {isLoading && enquiries.length === 0 ? (
             <div className="bg-[#12151B] border border-slate-800 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-3">
               <RefreshCw className="h-8 w-8 text-brand-orange animate-spin" />
-              <p className="text-sm font-medium">Loading customer messages & quote requests...</p>
+              <p className="text-sm font-medium">Loading customer messages &amp; quote requests...</p>
             </div>
           ) : enquiries.length === 0 ? (
-            <div className="bg-[#12151B] border border-slate-800 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-3">
-              <div className="h-12 w-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400">
-                <FileText className="h-6 w-6" />
+            <div className="bg-[#12151B] border border-slate-800 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-4">
+              <div className="h-14 w-14 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
+                <FileText className="h-7 w-7" />
               </div>
-              <h3 className="text-base font-bold text-white">No Customer Enquiries Found</h3>
-              <p className="text-xs text-slate-500 max-w-sm">
-                No quote requests or messages matching the current filter. New submissions from the website and AI assistant will appear here instantly.
-              </p>
+              <div>
+                <h3 className="text-lg font-bold text-white">No Customer Enquiries in &quot;{statusFilter}&quot;</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                  New submissions from the website quote form, contact page, and Priya AI Assistant will appear here in real-time.
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={handleQuickTestEnquiry}
+                  className="px-4 py-2 rounded-xl bg-brand-orange hover:bg-brand-orange-hover text-white text-xs font-bold shadow-orange-glow transition-all active:scale-95"
+                >
+                  ⚡ Send Test Enquiry
+                </button>
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-[#181E28] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-all"
+                >
+                  + Add Manual Lead
+                </button>
+              </div>
             </div>
           ) : (
             enquiries.map((enquiry) => {
@@ -332,6 +498,7 @@ export default function AdminDashboardPage() {
                   enquiry.service_name || 'core cutting'
                 }. We are ready to assist you with quotation and scheduling.`
               );
+              const sourceInfo = getSourceBadge(enquiry.source);
 
               return (
                 <div
@@ -349,6 +516,11 @@ export default function AdminDashboardPage() {
                           )}`}
                         >
                           {enquiry.status}
+                        </span>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] border ${sourceInfo.color}`}
+                        >
+                          {sourceInfo.label}
                         </span>
                         {enquiry.whatsapp_preference && (
                           <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-[10px] font-bold text-emerald-400 flex items-center space-x-1">
@@ -381,7 +553,7 @@ export default function AdminDashboardPage() {
                       )}
                     </div>
 
-                    {/* Right: Quick Action Buttons & Status Selector */}
+                    {/* Right: Quick Action Buttons, Status Selector & Delete */}
                     <div className="flex items-center space-x-2 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-800">
                       {/* Direct Call Button */}
                       <a
@@ -418,6 +590,16 @@ export default function AdminDashboardPage() {
                         <option value="closed">Mark Closed</option>
                         <option value="spam">Mark Spam</option>
                       </select>
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => handleDelete(enquiry.id)}
+                        disabled={isUpdating === enquiry.id}
+                        className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700/60 transition-all"
+                        title="Delete Enquiry"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -426,6 +608,152 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </main>
+
+      {/* Manual Add / Test Enquiry Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-[#12151B] border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-lg bg-brand-orange/20 text-brand-orange flex items-center justify-center font-bold">
+                  +
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">Add Customer Enquiry</h3>
+                  <p className="text-xs text-slate-400">Log a manual call lead or test quote</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {modalError && (
+              <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 text-xs flex items-center space-x-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            {modalSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs flex items-center space-x-2">
+                <Check className="h-4 w-4 shrink-0" />
+                <span>{modalSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateEnquiry} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-bold mb-1 uppercase tracking-wider">
+                  Customer Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Ramesh Bhai"
+                  value={newEnquiryData.name}
+                  onChange={(e) => setNewEnquiryData({ ...newEnquiryData, name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-[#090C11] border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-brand-orange"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1 uppercase tracking-wider">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="e.g. 9876543210"
+                  value={newEnquiryData.phone}
+                  onChange={(e) => setNewEnquiryData({ ...newEnquiryData, phone: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-[#090C11] border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-brand-orange"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1 uppercase tracking-wider">
+                    Service Required
+                  </label>
+                  <select
+                    value={newEnquiryData.serviceId}
+                    onChange={(e) => setNewEnquiryData({ ...newEnquiryData, serviceId: e.target.value })}
+                    className="w-full px-3 py-2.5 bg-[#090C11] border border-slate-700 rounded-xl text-white focus:outline-none focus:border-brand-orange"
+                  >
+                    <option value="ac-core-cutting">AC Core Cutting</option>
+                    <option value="rcc-core-cutting">RCC Core Cutting</option>
+                    <option value="ac-drain-hole">AC Drain Hole</option>
+                    <option value="concrete-wall-drilling">Concrete Wall Drilling</option>
+                    <option value="pipe-cable-passage">Pipe &amp; Cable Passage</option>
+                    <option value="other">Other Services</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1 uppercase tracking-wider">
+                    Area / Location *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Alkapuri, Vadodara"
+                    value={newEnquiryData.location}
+                    onChange={(e) => setNewEnquiryData({ ...newEnquiryData, location: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-[#090C11] border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-brand-orange"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1 uppercase tracking-wider">
+                  Job Requirement / Message
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. 2 holes required on 2nd floor balcony wall"
+                  value={newEnquiryData.message}
+                  onChange={(e) => setNewEnquiryData({ ...newEnquiryData, message: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-[#090C11] border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-brand-orange"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="modalWaPref"
+                  checked={newEnquiryData.whatsappPreference}
+                  onChange={(e) => setNewEnquiryData({ ...newEnquiryData, whatsappPreference: e.target.checked })}
+                  className="h-4 w-4 rounded bg-slate-800 border-slate-700 text-brand-orange accent-[#FA4A14]"
+                />
+                <label htmlFor="modalWaPref" className="text-slate-300 font-medium">
+                  Customer prefers WhatsApp communication
+                </label>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end space-x-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={modalLoading}
+                  className="px-5 py-2.5 rounded-xl bg-brand-orange hover:bg-brand-orange-hover text-white font-extrabold shadow-orange-glow disabled:opacity-50"
+                >
+                  {modalLoading ? 'Saving...' : 'Save Enquiry'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

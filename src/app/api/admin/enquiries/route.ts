@@ -35,6 +35,46 @@ export async function GET(req: NextRequest) {
   }
 }
 
+export async function POST(req: NextRequest) {
+  if (!verifyAdminSession(req)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const { name, phone, whatsappPreference, serviceId, location, message, status } = body;
+
+    if (!name || !phone || !location) {
+      return NextResponse.json(
+        { success: false, error: 'Name, phone, and location are required.' },
+        { status: 400 }
+      );
+    }
+
+    const { saveEnquiry } = await import('@/lib/enquiryStore');
+    const result = await saveEnquiry({
+      name: name.trim(),
+      phone: phone.trim(),
+      whatsappPreference: Boolean(whatsappPreference),
+      serviceId: serviceId || 'ac-core-cutting',
+      location: location.trim(),
+      message: message ? message.trim() : 'Manual Entry from Admin Portal',
+      source: 'admin_manual',
+      sourcePage: '/admin',
+      status: status === 'contacted' || status === 'quoted' || status === 'closed' ? status : 'new',
+    });
+
+    return NextResponse.json({
+      success: true,
+      id: result.id,
+      message: 'Enquiry created successfully',
+    });
+  } catch (error: any) {
+    console.error('Admin Enquiry Create Error:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
 export async function PATCH(req: NextRequest) {
   if (!verifyAdminSession(req)) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { query } from './db';
+import { query, ensureEnquiriesTable } from './db';
 
 export interface EnquiryRecord {
   id: string;
@@ -29,43 +29,74 @@ export interface EnquiryStats {
   today: number;
 }
 
-const FALLBACK_DIR = path.join(process.cwd(), 'db');
-const FALLBACK_FILE = path.join(FALLBACK_DIR, 'enquiries_fallback.json');
+function getFallbackFilePath(): string {
+  const candidates = [
+    path.join(process.cwd(), 'db', 'enquiries_fallback.json'),
+    path.join(process.cwd(), 'core cutting website', 'db', 'enquiries_fallback.json'),
+    path.resolve(__dirname, '../../db/enquiries_fallback.json'),
+    path.resolve(__dirname, '../../../db/enquiries_fallback.json'),
+  ];
 
-// In-memory array to guarantee non-loss even if disk write has temporary locks
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+
+  const parentDb = path.join(process.cwd(), 'core cutting website', 'db');
+  if (fs.existsSync(path.join(process.cwd(), 'core cutting website'))) {
+    return path.join(parentDb, 'enquiries_fallback.json');
+  }
+  return path.join(process.cwd(), 'db', 'enquiries_fallback.json');
+}
+
 let memoryEnquiries: EnquiryRecord[] = [];
 
-function ensureFallbackDir() {
-  if (!fs.existsSync(FALLBACK_DIR)) {
-    fs.mkdirSync(FALLBACK_DIR, { recursive: true });
+function ensureFallbackDir(filePath: string) {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
 }
 
 function readFallbackFile(): EnquiryRecord[] {
   try {
-    ensureFallbackDir();
-    if (!fs.existsSync(FALLBACK_FILE)) {
-      return [];
+    const filePath = getFallbackFilePath();
+    ensureFallbackDir(filePath);
+    if (!fs.existsSync(filePath)) {
+      return memoryEnquiries;
     }
-    const content = fs.readFileSync(FALLBACK_FILE, 'utf-8');
+    const content = fs.readFileSync(filePath, 'utf-8');
     const parsed = JSON.parse(content);
-    return Array.isArray(parsed) ? parsed : [];
+    if (Array.isArray(parsed)) {
+      memoryEnquiries = parsed;
+      return parsed;
+    }
+    return memoryEnquiries;
   } catch (err) {
-    console.warn('Error reading enquiries fallback file:', err);
     return memoryEnquiries;
   }
 }
 
 function writeFallbackFile(records: EnquiryRecord[]) {
   try {
-    ensureFallbackDir();
-    fs.writeFileSync(FALLBACK_FILE, JSON.stringify(records, null, 2), 'utf-8');
+    const filePath = getFallbackFilePath();
+    ensureFallbackDir(filePath);
+    fs.writeFileSync(filePath, JSON.stringify(records, null, 2), 'utf-8');
     memoryEnquiries = records;
   } catch (err) {
-    console.error('Error writing enquiries fallback file:', err);
     memoryEnquiries = records;
   }
 }
+
+const SERVICE_NAME_MAP: Record<string, string> = {
+  'ac-core-cutting': 'AC Core Cutting',
+  'rcc-core-cutting': 'RCC Core Cutting',
+  'ac-drain-hole': 'AC Drain Hole',
+  'concrete-wall-drilling': 'Concrete Wall Drilling',
+  'pipe-cable-passage': 'Pipe & Cable Passage',
+  'other': 'Other Services',
+};
 
 export async function saveEnquiry(data: {
   name: string;
@@ -75,10 +106,14 @@ export async function saveEnquiry(data: {
   location: string;
   message?: string;
   sourcePage?: string;
+  source?: string;
   status?: 'new';
 }): Promise<{ success: boolean; id: string; storage: 'db' | 'fallback' }> {
   const fallbackId = `enq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const nowIso = new Date().toISOString();
+  const formattedServiceName =
+    SERVICE_NAME_MAP[data.serviceId] ||
+    data.serviceId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   const newRecord: EnquiryRecord = {
     id: fallbackId,
@@ -86,7 +121,7 @@ export async function saveEnquiry(data: {
     phone: data.phone,
     whatsapp_preference: data.whatsappPreference,
     service_id: data.serviceId,
-    service_name: data.serviceId.replace(/-/g, ' ').toUpperCase(),
+    service_name: formattedServiceName,
     service_slug: data.serviceId,
     location: data.location,
     message: data.message ? data.message.trim() : null,
@@ -94,7 +129,7 @@ export async function saveEnquiry(data: {
     source_page: data.sourcePage ? data.sourcePage.trim() : null,
     created_at: nowIso,
     updated_at: nowIso,
-    source: 'web_form',
+    source: data.source || 'web_form',
   };
 
   // Always persist immediately to local fallback file so data is NEVER lost
@@ -102,117 +137,116 @@ export async function saveEnquiry(data: {
     const records = readFallbackFile();
     records.unshift(newRecord);
     writeFallbackFile(records);
-    console.log('Enquiry successfully recorded in store:', newRecord.id, newRecord.name);
   } catch (err) {
     console.error('Fallback write error:', err);
   }
 
-  // Attempt optional Postgres DB storage in background
+  // Attempt Postgres DB storage in background if available
   try {
-    let serviceUuid: string | null = null;
-    try {
-      const serviceLookup = await query<{ id: string }>(
-        'SELECT id FROM services WHERE slug = $1 LIMIT 1',
-        [data.serviceId]
-      );
-      if (serviceLookup.rows?.[0]) {
-        serviceUuid = serviceLookup.rows[0].id;
-      }
-    } catch {
-      serviceUuid = null;
-    }
+    await ensureEnquiriesTable();
 
     const insertQuery = `
       INSERT INTO enquiries (
+        id,
         name,
         phone,
         whatsapp_preference,
         service_id,
+        service_name,
         location,
         message,
         status,
-        source_page
+        source,
+        source_page,
+        created_at,
+        updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, 'new', $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      ON CONFLICT (id) DO UPDATE SET updated_at = NOW()
       RETURNING id, created_at;
     `;
 
     const res = await query<{ id: string }>(insertQuery, [
+      fallbackId,
       data.name,
       data.phone,
       data.whatsappPreference,
-      serviceUuid,
+      data.serviceId,
+      formattedServiceName,
       data.location,
       data.message ? data.message.trim() : null,
+      'new',
+      data.source || 'web_form',
       data.sourcePage ? data.sourcePage.trim() : null,
     ]);
 
     if (res.rows?.[0]?.id) {
       return { success: true, id: res.rows[0].id, storage: 'db' };
     }
-  } catch (dbErr) {
-    // DB is optional/offline, record is already safely in fallback storage
+  } catch {
+    // DB offline/optional
   }
 
   return { success: true, id: fallbackId, storage: 'fallback' };
 }
-
 
 export async function getAllEnquiries(options: {
   status?: string | null;
   search?: string | null;
 }): Promise<{ enquiries: EnquiryRecord[]; stats: EnquiryStats }> {
   let dbEnquiries: EnquiryRecord[] = [];
-  let isDbSuccess = false;
 
   try {
-    let sql = `
+    await ensureEnquiriesTable();
+    const sql = `
       SELECT 
         e.id,
         e.name,
         e.phone,
         e.whatsapp_preference,
         e.service_id,
-        COALESCE(s.name, e.service_id) as service_name,
-        COALESCE(s.slug, e.service_id) as service_slug,
+        COALESCE(e.service_name, e.service_id) as service_name,
         e.location,
         e.message,
         e.status,
+        e.source,
         e.source_page,
         e.created_at,
         e.updated_at
       FROM enquiries e
-      LEFT JOIN services s ON e.service_id = s.id
       ORDER BY e.created_at DESC LIMIT 200;
     `;
     const res = await query<EnquiryRecord>(sql);
     dbEnquiries = res.rows || [];
-    isDbSuccess = true;
   } catch (err) {
-    console.warn('Could not fetch enquiries from DB, reading from fallback store:', err instanceof Error ? err.message : err);
+    // Expected when Postgres is not running or not configured
   }
 
   const fallbackRecords = readFallbackFile();
 
-  // Merge DB and fallback records without duplicate IDs
+  // Merge DB and fallback records, deduplicating by ID
   const combinedMap = new Map<string, EnquiryRecord>();
 
   // Add fallback records first
   for (const r of fallbackRecords) {
-    // Ensure all required fields exist
-    combinedMap.set(r.id || `${r.phone}_${r.created_at}`, {
+    const recordId = r.id || `fb_${Math.random().toString(36).substring(2, 8)}`;
+    combinedMap.set(recordId, {
       ...r,
-      id: r.id || `fb_${Math.random().toString(36).substr(2, 6)}`,
+      id: recordId,
       whatsapp_preference: r.whatsapp_preference ?? (r as any).whatsappPreference ?? true,
       service_id: r.service_id || (r as any).serviceId || 'ac-core-cutting',
-      service_name: r.service_name || (r as any).serviceId || 'AC Core Cutting',
+      service_name: r.service_name || SERVICE_NAME_MAP[r.service_id || ''] || 'AC Core Cutting',
       status: r.status || 'new',
     });
   }
 
   // Add DB records (will overwrite or add)
   for (const r of dbEnquiries) {
-    combinedMap.set(r.id, r);
+    combinedMap.set(r.id, {
+      ...r,
+      service_name: r.service_name || SERVICE_NAME_MAP[r.service_id || ''] || 'AC Core Cutting',
+      status: r.status || 'new',
+    });
   }
 
   let allList = Array.from(combinedMap.values()).sort(
