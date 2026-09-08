@@ -264,6 +264,300 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleExportPDF = () => {
+    if (enquiries.length === 0) {
+      alert('No enquiries available to generate PDF report.');
+      return;
+    }
+
+    const generatedAt = new Date().toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      dateStyle: 'full',
+      timeStyle: 'medium',
+    });
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to download/print the PDF report.');
+      return;
+    }
+
+    const tableRowsHtml = enquiries
+      .map((e, index) => {
+        const cleanPhone = e.phone || 'N/A';
+        const dateFormatted = new Date(e.created_at).toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
+        const statusColor =
+          e.status === 'new'
+            ? '#ea580c'
+            : e.status === 'contacted'
+            ? '#2563eb'
+            : e.status === 'quoted'
+            ? '#d97706'
+            : e.status === 'closed'
+            ? '#16a34a'
+            : '#dc2626';
+
+        return `
+          <tr style="border-bottom: 1px solid #e2e8f0; background: ${index % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+            <td style="padding: 10px 8px; font-weight: 700; color: #0f172a; font-size: 11px;">#${index + 1}</td>
+            <td style="padding: 10px 8px; font-size: 11px; color: #475569; white-space: nowrap;">${dateFormatted}</td>
+            <td style="padding: 10px 8px; font-weight: 700; color: #0f172a; font-size: 12px;">${e.name}</td>
+            <td style="padding: 10px 8px; font-size: 12px; font-weight: 600; color: #1e293b; white-space: nowrap;">
+              ${cleanPhone}
+              ${e.whatsapp_preference ? '<span style="display:inline-block; margin-left:4px; font-size:9px; background:#dcfce7; color:#166534; padding:2px 5px; border-radius:4px; font-weight:700;">WA</span>' : ''}
+            </td>
+            <td style="padding: 10px 8px; font-size: 11px; color: #334155; font-weight: 600;">${e.service_name || 'General Core Cutting'}</td>
+            <td style="padding: 10px 8px; font-size: 11px; color: #475569;">${e.location}</td>
+            <td style="padding: 10px 8px; text-align: center;">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: 9999px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #ffffff; background: ${statusColor};">
+                ${e.status}
+              </span>
+            </td>
+            <td style="padding: 10px 8px; font-size: 11px; color: #64748b; font-style: ${e.message ? 'normal' : 'italic'}; max-width: 260px;">
+              ${e.message ? e.message.replace(/</g, '&lt;').replace(/>/g, '&gt;') : 'None provided'}
+            </td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Core_Cutting_Leads_Report_${new Date().toISOString().split('T')[0]}</title>
+        <style>
+          @page {
+            size: A4 landscape;
+            margin: 10mm 12mm 12mm 12mm;
+          }
+          * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #0f172a;
+            background: #ffffff;
+            margin: 0;
+            padding: 20px;
+            font-size: 12px;
+            line-height: 1.4;
+          }
+          .header-card {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #ffffff;
+            padding: 20px 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .header-title {
+            font-size: 20px;
+            font-weight: 800;
+            margin: 0 0 4px 0;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+          }
+          .header-sub {
+            font-size: 11px;
+            color: #94a3b8;
+            margin: 0;
+          }
+          .badge-orange {
+            background: #ea580c;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-left: 8px;
+          }
+          .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+          }
+          .kpi-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            border-radius: 8px;
+            text-align: center;
+          }
+          .kpi-label {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 3px;
+          }
+          .kpi-val {
+            font-size: 18px;
+            font-weight: 900;
+            color: #0f172a;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 11px;
+          }
+          th {
+            background: #0f172a;
+            color: #ffffff;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            padding: 10px 8px;
+            text-align: left;
+          }
+          .footer-note {
+            margin-top: 24px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #64748b;
+          }
+          .no-print-bar {
+            background: #ea580c;
+            color: #ffffff;
+            padding: 12px 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+          }
+          .print-btn {
+            background: #ffffff;
+            color: #ea580c;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 12px;
+          }
+          @media print {
+            .no-print-bar {
+              display: none !important;
+            }
+            body {
+              padding: 0;
+            }
+            tr {
+              page-break-inside: avoid;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print-bar">
+          <span>📄 Print Preview Mode: Click "Save as PDF" in your print window to download.</span>
+          <button class="print-btn" onclick="window.print()">📥 Print / Save as PDF</button>
+        </div>
+
+        <div class="header-card">
+          <div>
+            <h1 class="header-title">
+              ${defaultBusinessProfile.business_name}
+              <span class="badge-orange">Official Lead Report</span>
+            </h1>
+            <p class="header-sub">Diamond Core Cutting & RCC Drilling Services | Management CRM</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">Generated: ${generatedAt}</div>
+            <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Filter: <strong>${statusFilter.toUpperCase()}</strong> | Records: <strong>${enquiries.length}</strong></div>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-box">
+            <div class="kpi-label">Total Leads</div>
+            <div class="kpi-val">${stats.total}</div>
+          </div>
+          <div class="kpi-box" style="border-color: #ea580c; background: #fff7ed;">
+            <div class="kpi-label" style="color: #ea580c;">New Leads</div>
+            <div class="kpi-val" style="color: #ea580c;">${stats.new}</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label" style="color: #2563eb;">Contacted</div>
+            <div class="kpi-val" style="color: #2563eb;">${stats.contacted}</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label" style="color: #d97706;">Quoted</div>
+            <div class="kpi-val" style="color: #d97706;">${stats.quoted}</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label" style="color: #16a34a;">Closed</div>
+            <div class="kpi-val" style="color: #16a34a;">${stats.closed}</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label" style="color: #7c3aed;">Today (24h)</div>
+            <div class="kpi-val" style="color: #7c3aed;">${stats.today}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 35px;">#</th>
+              <th style="width: 110px;">Date & Time</th>
+              <th style="width: 140px;">Customer Name</th>
+              <th style="width: 120px;">Phone</th>
+              <th style="width: 140px;">Service</th>
+              <th style="width: 110px;">Location</th>
+              <th style="width: 85px; text-align: center;">Status</th>
+              <th>Customer Requirement / Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+
+        <div class="footer-note">
+          <div><strong>Confidential</strong> — Internal business record for ${defaultBusinessProfile.business_name}.</div>
+          <div>Report generated automatically from Admin Portal • Page 1 of 1</div>
+        </div>
+
+        <script>
+          // Automatically trigger the print/save-as-pdf dialog on load
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 400);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   const handleExportCSV = (exportAll = false) => {
     const recordsToExport = exportAll ? enquiries : enquiries;
     if (recordsToExport.length === 0) {
@@ -428,15 +722,27 @@ export default function AdminDashboardPage() {
               <span className="hidden sm:inline">Add Enquiry</span>
             </button>
 
+            {/* Download PDF Report Button */}
+            <button
+              onClick={handleExportPDF}
+              disabled={enquiries.length === 0}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-xs font-black text-red-300 hover:text-white transition-all disabled:opacity-40 active:scale-95 shadow-xs"
+              title="Download official PDF report of leads"
+            >
+              <FileText className="h-4 w-4 text-red-400" />
+              <span className="hidden sm:inline">Download PDF Report</span>
+              <span className="sm:hidden">PDF Report</span>
+            </button>
+
+            {/* Download CSV Button */}
             <button
               onClick={() => handleExportCSV(false)}
               disabled={enquiries.length === 0}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-100 hover:text-white transition-all disabled:opacity-40 active:scale-95 shadow-xs"
-              title="Download professional CSV report of leads"
+              className="hidden lg:inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-[#181E28] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-all disabled:opacity-40 active:scale-95 shadow-xs"
+              title="Download CSV spreadsheet"
             >
-              <Download className="h-4 w-4 text-brand-orange" />
-              <span className="hidden sm:inline">Download CSV</span>
-              <span className="sm:hidden">CSV</span>
+              <Download className="h-4 w-4 text-slate-400" />
+              <span>CSV</span>
             </button>
 
             <button
