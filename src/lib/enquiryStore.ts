@@ -79,14 +79,20 @@ function readFallbackFile(): EnquiryRecord[] {
 }
 
 function writeFallbackFile(records: EnquiryRecord[]) {
-  try {
-    const filePath = getFallbackFilePath();
-    ensureFallbackDir(filePath);
-    fs.writeFileSync(filePath, JSON.stringify(records, null, 2), 'utf-8');
-    memoryEnquiries = records;
-  } catch (err) {
-    memoryEnquiries = records;
+  const filePaths = [
+    path.join(process.cwd(), 'db', 'enquiries_fallback.json'),
+    path.join(process.cwd(), 'core cutting website', 'db', 'enquiries_fallback.json'),
+  ];
+
+  for (const fp of filePaths) {
+    try {
+      ensureFallbackDir(fp);
+      fs.writeFileSync(fp, JSON.stringify(records, null, 2), 'utf-8');
+    } catch {
+      // ignore path errors
+    }
   }
+  memoryEnquiries = records;
 }
 
 const SERVICE_NAME_MAP: Record<string, string> = {
@@ -107,7 +113,7 @@ export async function saveEnquiry(data: {
   message?: string;
   sourcePage?: string;
   source?: string;
-  status?: 'new';
+  status?: 'new' | 'spam';
 }): Promise<{ success: boolean; id: string; storage: 'db' | 'fallback' }> {
   const fallbackId = `enq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const nowIso = new Date().toISOString();
@@ -125,7 +131,7 @@ export async function saveEnquiry(data: {
     service_slug: data.serviceId,
     location: data.location,
     message: data.message ? data.message.trim() : null,
-    status: 'new',
+    status: data.status || 'new',
     source_page: data.sourcePage ? data.sourcePage.trim() : null,
     created_at: nowIso,
     updated_at: nowIso,
@@ -175,7 +181,7 @@ export async function saveEnquiry(data: {
       formattedServiceName,
       data.location,
       data.message ? data.message.trim() : null,
-      'new',
+      data.status || 'new',
       data.source || 'web_form',
       data.sourcePage ? data.sourcePage.trim() : null,
     ]);
@@ -249,9 +255,11 @@ export async function getAllEnquiries(options: {
     });
   }
 
-  let allList = Array.from(combinedMap.values()).sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  let allList = Array.from(combinedMap.values()).sort((a, b) => {
+    const timeA = new Date(a.created_at).getTime() || 0;
+    const timeB = new Date(b.created_at).getTime() || 0;
+    return timeB - timeA;
+  });
 
   // Compute total stats over all records
   const now = Date.now();
@@ -264,7 +272,10 @@ export async function getAllEnquiries(options: {
     quoted: allList.filter((r) => r.status === 'quoted').length,
     closed: allList.filter((r) => r.status === 'closed').length,
     spam: allList.filter((r) => r.status === 'spam').length,
-    today: allList.filter((r) => now - new Date(r.created_at).getTime() < last24h).length,
+    today: allList.filter((r) => {
+      const t = new Date(r.created_at).getTime();
+      return !isNaN(t) && now - t < last24h;
+    }).length,
   };
 
   // Filter by status if specified

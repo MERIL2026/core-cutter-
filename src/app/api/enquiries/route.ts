@@ -34,10 +34,13 @@ export async function POST(req: NextRequest) {
 
     // 2. Abuse & Rate Limiting Check
     const clientIp = getClientIp(req);
-    const rateLimit = checkRateLimit(clientIp, {
-      maxRequests: 25,
-      windowMs: 15 * 60 * 1000,
-    });
+    const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp.startsWith('192.168.') || clientIp === 'localhost';
+    const rateLimit = isLocal
+      ? { success: true }
+      : checkRateLimit(clientIp, {
+          maxRequests: 60,
+          windowMs: 15 * 60 * 1000,
+        });
 
     if (!rateLimit.success) {
       return NextResponse.json(
@@ -101,17 +104,9 @@ export async function POST(req: NextRequest) {
       honeypot,
     } = validationResult.data;
 
-    // 5. Honeypot Spam Protection
-    if (honeypot && honeypot.trim().length > 0) {
-      // Reject bot submissions
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Spam submission detected.',
-        },
-        { status: 400 }
-      );
-    }
+    // 5. Honeypot check - if filled, mark status as spam instead of hard rejecting legitimate autofills
+    const isBot = honeypot && honeypot.trim().length > 0;
+    const initialStatus = isBot ? 'spam' : 'new';
 
     // 6. Fast Resilient Storage (PostgreSQL with instant file fallback)
     const result = await saveEnquiry({
@@ -122,7 +117,16 @@ export async function POST(req: NextRequest) {
       location,
       message: message || undefined,
       sourcePage: sourcePage || undefined,
-      status: 'new',
+      source: 'web_form',
+      status: initialStatus,
+    });
+
+    console.log('Successfully received & stored quote request:', {
+      id: result.id,
+      name,
+      phone,
+      serviceId,
+      storage: result.storage,
     });
 
     // 7. Truthful Success Response

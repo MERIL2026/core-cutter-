@@ -113,6 +113,8 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError(null);
@@ -168,6 +170,9 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
 
       if (response.status === 201 && data.success) {
         setIsSuccess(true);
+        if (data.id) {
+          setSubmittedId(data.id);
+        }
         // Dispatch quote_submit ONLY after server confirms persistent storage
         trackEvent({
           event_name: 'quote_submit',
@@ -210,6 +215,7 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
 
   const handleReset = () => {
     setIsSuccess(false);
+    setSubmittedId(null);
     setServerError(null);
     setIsRateLimited(false);
     setHasTrackedStart(false);
@@ -240,6 +246,11 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           <strong className="text-brand-navy">{values.location}</strong>. Our core cutting technician will review the
           details and reach out to you shortly.
         </p>
+        {submittedId && (
+          <div className="inline-block px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-mono font-bold text-emerald-800">
+            Ref: {submittedId}
+          </div>
+        )}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button variant="outline" size="sm" onClick={handleReset}>
             Submit Another Request

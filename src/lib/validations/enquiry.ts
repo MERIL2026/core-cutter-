@@ -18,16 +18,18 @@ export const createEnquirySchema = z.object({
     .regex(phoneRegex, 'Please enter a valid phone number with digits (7–20 digits).'),
   whatsappPreference: z
     .boolean({ invalid_type_error: 'WhatsApp preference must be a boolean.' })
-    .default(false),
+    .default(true),
   serviceId: z
     .string({ required_error: 'Please select a valid service.' })
     .trim()
     .refine(
-      (val) => allowedServiceSlugs.includes(val) || val === 'other',
+      (val) => allowedServiceSlugs.includes(val) || val === 'other' || !val,
       {
         message: 'Please select an authorized service category from the available options.',
       }
-    ),
+    )
+    .default('ac-core-cutting')
+    .transform((val) => val || 'ac-core-cutting'),
   location: z
     .string({ required_error: 'Please enter your service location or city.' })
     .trim()
