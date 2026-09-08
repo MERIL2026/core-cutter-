@@ -246,11 +246,6 @@ export const ContactFormUI: React.FC<ContactFormUIProps> = ({
           <strong className="text-brand-navy">{values.location}</strong>. Our core cutting technician will review the
           details and reach out to you shortly.
         </p>
-        {submittedId && (
-          <div className="inline-block px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-mono font-bold text-emerald-800">
-            Ref: {submittedId}
-          </div>
-        )}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button variant="outline" size="sm" onClick={handleReset}>
             Submit Another Request
