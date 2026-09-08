@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Container } from './Container';
-import { ShieldCheck, Phone, MessageSquare, MapPin, Clock } from 'lucide-react';
+import { ShieldCheck, Phone, MessageSquare, MapPin, Clock, Lock } from 'lucide-react';
 import { mainNavItems, footerQuickLinks } from '../navigation/navData';
 import { defaultBusinessProfile } from '@/content/business';
 
@@ -133,10 +133,20 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
         </div>
 
-        {/* Bottom Legal / Copyright */}
-        <div className="pt-8 text-center md:flex md:justify-between md:text-left text-xs text-slate-500 font-medium">
+        {/* Bottom Legal / Copyright & Secret Admin Access */}
+        <div className="pt-8 text-center md:flex md:justify-between md:items-center md:text-left text-xs text-slate-500 font-medium">
           <p>© {currentYear} {businessName}. All rights reserved.</p>
-          <p className="mt-2 md:mt-0 font-bold text-slate-400">Precision Rotary Diamond Core Cutting Standard</p>
+          <div className="flex items-center justify-center md:justify-end space-x-3 mt-2 md:mt-0">
+            <span className="font-bold text-slate-400">Precision Rotary Diamond Core Cutting Standard</span>
+            <Link
+              href="/admin/login"
+              title="Staff & Owner Portal"
+              className="inline-flex items-center space-x-1 text-slate-700 hover:text-brand-orange transition-colors text-[11px] py-0.5 px-1.5 rounded opacity-60 hover:opacity-100"
+            >
+              <Lock className="h-3 w-3" />
+              <span>Staff</span>
+            </Link>
+          </div>
         </div>
       </Container>
     </footer>
