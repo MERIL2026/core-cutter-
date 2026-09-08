@@ -3,6 +3,7 @@ import { createEnquirySchema } from '@/lib/validations/enquiry';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { query } from '@/lib/db';
 import { saveEnquiry } from '@/lib/enquiryStore';
+import { sendNewEnquiryEmail } from '@/lib/emailjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -129,7 +130,23 @@ export async function POST(req: NextRequest) {
       storage: result.storage,
     });
 
-    // 7. Truthful Success Response
+    // 7. Automatic EmailJS Notification Dispatch (Non-blocking)
+    if (!isBot) {
+      sendNewEnquiryEmail({
+        id: result.id,
+        name,
+        phone,
+        whatsappPreference,
+        serviceId,
+        location,
+        message: message || undefined,
+        sourcePage: sourcePage || undefined,
+      }).catch((emailErr) => {
+        console.error('[EmailJS] Background dispatch error:', emailErr);
+      });
+    }
+
+    // 8. Truthful Success Response
     return NextResponse.json(
       {
         success: true,
