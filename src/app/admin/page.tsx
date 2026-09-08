@@ -264,30 +264,102 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleExportCSV = () => {
-    if (enquiries.length === 0) return;
+  const handleExportCSV = (exportAll = false) => {
+    const recordsToExport = exportAll ? enquiries : enquiries;
+    if (recordsToExport.length === 0) {
+      alert('No enquiries to export.');
+      return;
+    }
 
-    const headers = ['Date', 'Name', 'Phone', 'WhatsApp Preferred', 'Service', 'Location', 'Status', 'Source', 'Message'];
-    const rows = enquiries.map((e) => [
-      new Date(e.created_at).toLocaleString('en-IN'),
-      `"${e.name.replace(/"/g, '""')}"`,
-      `"${e.phone}"`,
-      e.whatsapp_preference ? 'Yes' : 'No',
-      `"${(e.service_name || 'General Core Cutting').replace(/"/g, '""')}"`,
-      `"${e.location.replace(/"/g, '""')}"`,
-      e.status.toUpperCase(),
-      `"${e.source || 'Web Form'}"`,
-      `"${(e.message || '').replace(/"/g, '""')}"`,
-    ]);
+    const generatedAt = new Date().toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      dateStyle: 'full',
+      timeStyle: 'medium',
+    });
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const fileTimestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+
+    const escapeCell = (val: unknown) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""').replace(/\r\n/g, ' ').replace(/[\r\n]/g, ' ');
+      return `"${str}"`;
+    };
+
+    const lines: string[] = [];
+    const BOM = '\uFEFF'; // UTF-8 Byte Order Mark for Excel & CSV compatibility
+
+    // Professional Business Metadata Header
+    lines.push(escapeCell(`${defaultBusinessProfile.business_name} - Official Customer Lead Report`));
+    lines.push(escapeCell(`Generated on: ${generatedAt} (IST)`));
+    lines.push(escapeCell(`Active Filter: ${statusFilter.toUpperCase()} | Total Exported Records: ${recordsToExport.length}`));
+    lines.push(escapeCell(`Summary Statistics: Total: ${stats.total} | New: ${stats.new} | Contacted: ${stats.contacted} | Quoted: ${stats.quoted} | Closed: ${stats.closed}`));
+    lines.push(''); // Blank spacer row
+
+    // Table Column Headers
+    const headers = [
+      'Lead ID',
+      'Date & Time (IST)',
+      'Customer Name',
+      'Phone Number',
+      'WhatsApp Preferred',
+      'Direct WhatsApp Link',
+      'Service Required',
+      'Location / City Area',
+      'Lead Status',
+      'Lead Source',
+      'Customer Note / Requirements',
+    ];
+    lines.push(headers.map(escapeCell).join(','));
+
+    // Data Rows
+    for (const e of recordsToExport) {
+      const cleanDigits = (e.phone || '').replace(/\D/g, '');
+      const cleanPhoneWithPlus = (e.phone || '').startsWith('+')
+        ? e.phone
+        : `+91${cleanDigits.slice(-10)}`;
+      const waLink = cleanDigits ? `https://wa.me/${cleanDigits}` : 'N/A';
+
+      const dateFormatted = new Date(e.created_at).toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+      const row = [
+        e.id,
+        dateFormatted,
+        e.name,
+        `="${cleanPhoneWithPlus}"`, // Enforces text formatting to keep + and leading zeros
+        e.whatsapp_preference ? 'YES' : 'NO',
+        waLink,
+        e.service_name || 'General Core Cutting',
+        e.location,
+        e.status.toUpperCase(),
+        e.source === 'ai_assistant'
+          ? 'Priya AI Voice/Chat'
+          : e.source === 'admin_manual'
+          ? 'Manual Phone Lead'
+          : 'Website Quote Form',
+        e.message || 'No additional note provided',
+      ];
+
+      lines.push(row.map(escapeCell).join(','));
+    }
+
+    const csvContent = BOM + lines.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `core_cutting_leads_${new Date().toISOString().split('T')[0]}.csv`);
+    link.href = url;
+    link.setAttribute('download', `CoreCutting_Leads_Report_${fileTimestamp}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const getStatusBadge = (status: Enquiry['status']) => {
@@ -357,13 +429,14 @@ export default function AdminDashboardPage() {
             </button>
 
             <button
-              onClick={handleExportCSV}
+              onClick={() => handleExportCSV(false)}
               disabled={enquiries.length === 0}
-              className="hidden sm:inline-flex items-center space-x-2 px-3 py-2 rounded-xl bg-[#181E28] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition-all disabled:opacity-40"
-              title="Export leads to CSV"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-100 hover:text-white transition-all disabled:opacity-40 active:scale-95 shadow-xs"
+              title="Download professional CSV report of leads"
             >
-              <Download className="h-4 w-4" />
-              <span>Export CSV</span>
+              <Download className="h-4 w-4 text-brand-orange" />
+              <span className="hidden sm:inline">Download CSV</span>
+              <span className="sm:hidden">CSV</span>
             </button>
 
             <button
