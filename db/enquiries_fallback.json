@@ -1,5 +1,21 @@
 [
   {
+    "id": "enq_1788857746768_udqyl",
+    "name": "MERIL PARMAR",
+    "phone": "9558733785",
+    "whatsapp_preference": true,
+    "service_id": "ac-core-cutting",
+    "service_name": "AC CORE CUTTING",
+    "service_slug": "ac-core-cutting",
+    "location": "newsama",
+    "message": "abcdefg",
+    "status": "new",
+    "source_page": "/",
+    "created_at": "2026-09-08T08:55:46.768Z",
+    "updated_at": "2026-09-08T08:55:46.768Z",
+    "source": "web_form"
+  },
+  {
     "id": "enq_1788857579495_q0ggo",
     "name": "Pooja Sharma",
     "phone": "9824155667",
@@ -9,10 +25,10 @@
     "service_slug": "ac-core-cutting",
     "location": "Pal, Surat",
     "message": "Need 3 holes for split AC installation.",
-    "status": "new",
+    "status": "spam",
     "source_page": null,
     "created_at": "2026-09-08T08:52:59.495Z",
-    "updated_at": "2026-09-08T08:52:59.495Z",
+    "updated_at": "2026-09-08T08:56:04.258Z",
     "source": "web_form"
   }
 ]
