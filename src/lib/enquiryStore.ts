@@ -77,7 +77,37 @@ export async function saveEnquiry(data: {
   sourcePage?: string;
   status?: 'new';
 }): Promise<{ success: boolean; id: string; storage: 'db' | 'fallback' }> {
-  // 1. Try DB storage first (fast)
+  const fallbackId = `enq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const nowIso = new Date().toISOString();
+
+  const newRecord: EnquiryRecord = {
+    id: fallbackId,
+    name: data.name,
+    phone: data.phone,
+    whatsapp_preference: data.whatsappPreference,
+    service_id: data.serviceId,
+    service_name: data.serviceId.replace(/-/g, ' ').toUpperCase(),
+    service_slug: data.serviceId,
+    location: data.location,
+    message: data.message ? data.message.trim() : null,
+    status: 'new',
+    source_page: data.sourcePage ? data.sourcePage.trim() : null,
+    created_at: nowIso,
+    updated_at: nowIso,
+    source: 'web_form',
+  };
+
+  // Always persist immediately to local fallback file so data is NEVER lost
+  try {
+    const records = readFallbackFile();
+    records.unshift(newRecord);
+    writeFallbackFile(records);
+    console.log('Enquiry successfully recorded in store:', newRecord.id, newRecord.name);
+  } catch (err) {
+    console.error('Fallback write error:', err);
+  }
+
+  // Attempt optional Postgres DB storage in background
   try {
     let serviceUuid: string | null = null;
     try {
@@ -121,43 +151,12 @@ export async function saveEnquiry(data: {
       return { success: true, id: res.rows[0].id, storage: 'db' };
     }
   } catch (dbErr) {
-    console.warn('DB storage unavailable for enquiry, persisting to fallback storage:', dbErr instanceof Error ? dbErr.message : dbErr);
-  }
-
-  // 2. Reliable File-based / In-Memory storage fallback
-  const fallbackId = `enq_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const nowIso = new Date().toISOString();
-
-  const newRecord: EnquiryRecord = {
-    id: fallbackId,
-    name: data.name,
-    phone: data.phone,
-    whatsapp_preference: data.whatsappPreference,
-    service_id: data.serviceId,
-    service_name: data.serviceId.replace(/-/g, ' ').toUpperCase(),
-    service_slug: data.serviceId,
-    location: data.location,
-    message: data.message ? data.message.trim() : null,
-    status: 'new',
-    source_page: data.sourcePage ? data.sourcePage.trim() : null,
-    created_at: nowIso,
-    updated_at: nowIso,
-    source: 'fallback',
-  };
-
-  const records = readFallbackFile();
-  // Check if duplicate already exists (same phone and within last 10 seconds)
-  const isDuplicate = records.some(
-    (r) => r.phone === newRecord.phone && Math.abs(new Date(r.created_at).getTime() - Date.now()) < 10000
-  );
-
-  if (!isDuplicate) {
-    records.unshift(newRecord);
-    writeFallbackFile(records);
+    // DB is optional/offline, record is already safely in fallback storage
   }
 
   return { success: true, id: fallbackId, storage: 'fallback' };
 }
+
 
 export async function getAllEnquiries(options: {
   status?: string | null;

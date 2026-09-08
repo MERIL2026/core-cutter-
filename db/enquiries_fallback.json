@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "id": "enq_1788857579495_q0ggo",
+    "name": "Pooja Sharma",
+    "phone": "9824155667",
+    "whatsapp_preference": true,
+    "service_id": "ac-core-cutting",
+    "service_name": "AC CORE CUTTING",
+    "service_slug": "ac-core-cutting",
+    "location": "Pal, Surat",
+    "message": "Need 3 holes for split AC installation.",
+    "status": "new",
+    "source_page": null,
+    "created_at": "2026-09-08T08:52:59.495Z",
+    "updated_at": "2026-09-08T08:52:59.495Z",
+    "source": "web_form"
+  }
+]

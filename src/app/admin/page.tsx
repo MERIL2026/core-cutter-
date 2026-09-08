@@ -63,16 +63,17 @@ export default function AdminDashboardPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
-  const fetchEnquiries = useCallback(async () => {
-    setIsLoading(true);
+  const fetchEnquiries = useCallback(async (isBackground = false) => {
+    if (!isBackground) setIsLoading(true);
     try {
       let url = `/api/admin/enquiries?status=${statusFilter}`;
       if (searchQuery.trim()) {
         url += `&search=${encodeURIComponent(searchQuery.trim())}`;
       }
 
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: 'no-store' });
       if (res.status === 401) {
         router.push('/admin/login');
         return;
@@ -84,16 +85,22 @@ export default function AdminDashboardPage() {
         if (data.stats) {
           setStats(data.stats);
         }
+        setLastRefreshed(new Date());
       }
     } catch (err) {
       console.error('Failed to fetch enquiries:', err);
     } finally {
-      setIsLoading(false);
+      if (!isBackground) setIsLoading(false);
     }
   }, [statusFilter, searchQuery, router]);
 
   useEffect(() => {
     fetchEnquiries();
+    // Auto-poll every 3 seconds for live real-time enquiry updates
+    const timer = setInterval(() => {
+      fetchEnquiries(true);
+    }, 3000);
+    return () => clearInterval(timer);
   }, [fetchEnquiries]);
 
   const handleStatusChange = async (id: string, newStatus: Enquiry['status']) => {
@@ -194,6 +201,11 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex items-center space-x-3">
+            <div className="hidden md:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[11px] font-bold text-emerald-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Live Auto-Sync Active</span>
+            </div>
+
             <button
               onClick={handleExportCSV}
               disabled={enquiries.length === 0}
@@ -205,11 +217,12 @@ export default function AdminDashboardPage() {
             </button>
 
             <button
-              onClick={fetchEnquiries}
-              className="p-2 rounded-xl bg-[#181E28] hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-all"
+              onClick={() => fetchEnquiries(false)}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-[#181E28] hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-all"
               title="Refresh leads"
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin text-brand-orange' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin text-brand-orange' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
             </button>
 
             <button
