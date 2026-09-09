@@ -1,16 +1,23 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { Phone, MessageSquare, Calculator } from 'lucide-react';
 import { defaultBusinessProfile } from '@/content/business';
 
 export const MobileActionBar: React.FC = () => {
+  const pathname = usePathname();
+
   const handleScrollToEstimator = () => {
     const el = document.getElementById('cost-estimator') || document.getElementById('quote-section');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   const cleanPhone = defaultBusinessProfile.phone.replace(/[^\d+]/g, '');
   const whatsappNum = (defaultBusinessProfile.whatsapp || defaultBusinessProfile.phone).replace(/\D/g, '');

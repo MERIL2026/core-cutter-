@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { ChatWindow } from './ChatWindow';
 import { AssistantBlob } from './AssistantBlob';
 
 export const ChatbotWidget: React.FC = () => {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -55,6 +57,10 @@ export const ChatbotWidget: React.FC = () => {
       localStorage.setItem('core_assistant_tooltip_dismissed', 'true');
     } catch {}
   };
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <>
